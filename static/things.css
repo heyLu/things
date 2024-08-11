@@ -25,6 +25,10 @@ main * {
   font-family: monospace;
 }
 
+pre {
+  white-space: break-spaces;
+}
+
 #tell-me {
   width: 90%;
 
