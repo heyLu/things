@@ -16,6 +16,7 @@ var All = Handlers([]Handler{
 	TrackHandler{},
 	NoteHandler{},
 	ByDateHandler{},
+	JavaScriptHandler{},
 	MathHandler{},
 	HelpHandler{},
 	OverviewHandler{},

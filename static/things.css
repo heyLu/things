@@ -69,3 +69,15 @@ section.thing > p {
 section.thing:hover .meta {
   opacity: 0.5;
 }
+
+section.js textarea {
+  width: 100%;
+}
+
+section.js canvas {
+  border: 1px solid #ddd;
+}
+
+section.js .js-error {
+  color: red;
+}
