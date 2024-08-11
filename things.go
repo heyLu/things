@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"embed"
 	"errors"
 	"flag"
 	"fmt"
@@ -19,6 +20,9 @@ var settings struct {
 	Addr   string
 	DBPath string
 }
+
+//go:embed static
+var staticFS embed.FS
 
 func main() {
 	flag.StringVar(&settings.Addr, "addr", "localhost:5000", "Address to listen on")
@@ -46,7 +50,7 @@ func main() {
 	router.Get("/{kind}/{category}", things.HandleList)
 	router.Get("/{kind}/{category}/{id}", things.HandleFind)
 
-	router.Handle("/static/*", http.StripPrefix("/static/", http.FileServer(http.Dir("./static"))))
+	router.Handle("/static/*", http.FileServerFS(staticFS))
 
 	log.Printf("Listening on http://%s", settings.Addr)
 	log.Fatal(http.ListenAndServe(settings.Addr, router))
