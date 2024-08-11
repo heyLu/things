@@ -1,7 +1,7 @@
 FROM docker.io/golang:1.22-alpine3.20 as builder
 
-# gcc and libc-dev for sqlite, git for vcs listing in /stats page
-RUN apk add --no-cache gcc libc-dev git make
+# gcc and libc-dev for sqlite, git for vcs listing in /stats page, curl and make to get static files
+RUN apk add --no-cache gcc libc-dev git curl make
 
 WORKDIR /build
 
