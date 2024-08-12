@@ -123,7 +123,7 @@ func (dbs *dbStorage) Insert(ctx context.Context, row *Row) error {
 	}
 
 	row.ID = time.Now().Unix()
-	row.DateModified = time.Now().UTC().Truncate(time.Second)
+	row.DateCreated = time.Now().UTC().Truncate(time.Second)
 
 	tags := row.Tags
 	tags = append(tags, tagsFromString(row.Summary)...)
