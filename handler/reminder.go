@@ -40,6 +40,7 @@ func (rh ReminderHandler) Parse(input string) (Thing, error) {
 		}
 
 		reminder.Time.Time = time.Now().UTC().Add(dur).Truncate(time.Minute)
+		reminder.Time.Valid = true
 	}
 
 	if len(parts) > 2 {

@@ -133,6 +133,12 @@ func (dbs *dbStorage) Insert(ctx context.Context, row *Row) error {
 	slices.Sort(tags)
 	tags = slices.Compact(tags)
 
+	var timeValue sql.NullInt64 // convert time to int64 because otherwise sqlite stores a string
+	if row.Time.Valid {
+		timeValue.Int64 = row.Time.Time.UTC().Truncate(time.Second).Unix()
+		timeValue.Valid = true
+	}
+
 	var fieldsJSON []byte
 	if row.Fields != nil {
 		var err error
@@ -144,7 +150,7 @@ func (dbs *dbStorage) Insert(ctx context.Context, row *Row) error {
 
 	res, err := dbs.db.ExecContext(ctx, `INSERT INTO things_v2 (namespace, kind, id, summary, content, ref, number, float, bool, time, fields_json, tags, date_created, date_modified) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		row.Namespace, row.Kind, row.ID, row.Summary,
-		row.Content, row.Ref, row.Number, row.Float, row.Bool, row.Time, fieldsJSON,
+		row.Content, row.Ref, row.Number, row.Float, row.Bool, timeValue, fieldsJSON,
 		strings.Join(tags, ","), row.DateCreated.Unix(), row.DateModified.Unix(),
 	)
 	if err != nil {
@@ -196,13 +202,19 @@ func (dbr *dbRows) Scan(row *Row) error {
 	var tags string
 	var dateCreated int64
 	var dateModified int64
-	err := dbr.rows.Scan(&row.Namespace, &row.Kind, &row.ID, &row.Summary, &row.Content, &row.Ref, &row.Number, &row.Float, &row.Bool, &row.Time, &fieldsRaw, &tags, &dateCreated, &dateModified)
+	var timeValue sql.NullInt64
+	err := dbr.rows.Scan(&row.Namespace, &row.Kind, &row.ID, &row.Summary, &row.Content, &row.Ref, &row.Number, &row.Float, &row.Bool, &timeValue, &fieldsRaw, &tags, &dateCreated, &dateModified)
 	if err != nil {
 		return err
 	}
 
 	row.DateCreated = time.Unix(dateCreated, 0).UTC()
 	row.DateModified = time.Unix(dateModified, 0).UTC()
+
+	if timeValue.Valid {
+		row.Time.Time = time.Unix(timeValue.Int64, 0).UTC()
+		row.Time.Valid = true
+	}
 
 	row.Tags = strings.Split(tags, ",")
 	if fieldsRaw != nil {
