@@ -20,6 +20,7 @@ var All = Handlers([]Handler{
 	ByDateHandler{},
 	JavaScriptHandler{},
 	MathHandler{},
+	SearchHandler{},
 	HelpHandler{},
 	OverviewHandler{},
 })
