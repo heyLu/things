@@ -2,7 +2,9 @@ package handler
 
 import (
 	"context"
+	"fmt"
 	"html/template"
+	"math"
 	"strconv"
 	"strings"
 
@@ -77,6 +79,30 @@ func (t *Track) Num() *float64 {
 }
 func (t *Track) Notes() string { return t.Content.String }
 
+func (t *Track) FormatValue() string {
+	i, f := math.Modf(t.Float.Float64)
+	switch t.Summary {
+	case "sport":
+		if f < 0.01 {
+			return fmt.Sprintf("%dmin", int(i))
+		}
+		return fmt.Sprintf("%d:%d", int(i), int(f*100))
+	case "sleep":
+		return fmt.Sprintf("%.2fhrs", t.Float.Float64)
+	case "ready", "up", "bed":
+		return fmt.Sprintf("%d:%dhrs", int(i), int(f*100))
+	case "groceries":
+		return fmt.Sprintf("%.2feur", t.Float.Float64)
+	case "weight":
+		return fmt.Sprintf("%.2fkg", t.Float.Float64)
+	default:
+		if f < 0.001 {
+			return fmt.Sprintf("%d", int(i))
+		}
+		return fmt.Sprintf("%f", t.Float.Float64)
+	}
+}
+
 func (t *Track) ToRow() *storage.Row { return t.Row }
 
 var trackTemplate = template.Must(template.Must(commonTemplates.Clone()).Parse(`
@@ -84,8 +110,7 @@ var trackTemplate = template.Must(template.Must(commonTemplates.Clone()).Parse(`
 {{ .Category }}
 {{ if .Num }}
 <span{{ if (eq .Category "mood") }} style="opacity: calc({{ .Num }}/100)"{{ end }}>
-	{{ .Num }}
-	{{ if (eq .Category "stretch")}}min{{ end }}
+	{{ .FormatValue }}
 </span>
 {{ end }}
 {{ if .Notes }}<p>{{ .Notes | markdown }}</p>{{ end }}
