@@ -54,11 +54,25 @@ pre {
   }
 }
 
+section#answer > ul {
+  list-style-type: none;
+  padding-left: 0;
+}
+
 section.thing {
   position: relative;
+
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+  padding-bottom: 0.2ex;
+  margin-bottom: 1ex;
 }
 
 section.thing > p {
+  margin-bottom: 0;
+}
+
+section.thing .content > p:last-child {
+  padding-bottom: 0.2ex;
   margin-bottom: 0;
 }
 
