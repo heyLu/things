@@ -71,15 +71,11 @@ func (r Reminder) Until() time.Duration {
 	return r.Time.Time.Sub(time.Now()).Truncate(time.Minute)
 }
 
-var reminderTemplate = template.Must(template.New("").Parse(`
-<section class="thing reminder">
-{{ if .Metadata }}
-	<time class="meta date-created" time="{{ .DateCreated }}" title="{{ .DateCreated }}">{{ .DateCreated.Format "2006-01-02 15:04:05" }}</time>
+var reminderTemplate = template.Must(template.Must(commonTemplates.Clone()).Parse(`
+{{ define "content" }}
+<span>
+	<time time="{{ .Time }}" title="{{ .Time }}">in {{ .Until }}</time>
+	{{ .Summary }}
+</span>
 {{ end }}
-
-	<span>
-		<time time="{{ .Time }}" title="{{ .Time }}">in {{ .Until }}</time>
-		{{ .Summary }}
-	</span>
-</section>
 `))

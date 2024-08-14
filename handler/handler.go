@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"html"
@@ -8,6 +9,7 @@ import (
 	"net/http"
 
 	"github.com/heyLu/lp/go/things/storage"
+	"github.com/yuin/goldmark"
 )
 
 var All = Handlers([]Handler{
@@ -109,5 +111,34 @@ type TemplateRenderer struct {
 }
 
 func (tr TemplateRenderer) Render(ctx context.Context, w http.ResponseWriter) error {
-	return tr.Template.Execute(w, tr.Data)
+	return tr.Template.ExecuteTemplate(w, "thing", tr.Data)
 }
+
+var commonFuncs = template.FuncMap{
+	// TODO: parse as gfm
+	// TODO: linkify tags
+	"markdown": func(md string) (template.HTML, error) {
+		buf := new(bytes.Buffer)
+		err := goldmark.Convert([]byte(md), buf)
+		if err != nil {
+			return "", err
+		}
+		return template.HTML(buf.String()), nil
+	},
+}
+
+var commonTemplates = template.Must(template.New("").Funcs(commonFuncs).Parse(`
+{{ define "thing" }}
+<section class="thing {{ .Kind }}">
+	<div class="content">
+	{{ template "content" . }}
+	</div>
+
+	<footer class="meta">
+		<time class="date-created" time="{{ .DateCreated }}" title="{{ .DateCreated }}">{{ .DateCreated.Format "2006-01-02 15:04:05" }}</time>
+
+		<span class="tags">{{ range .Tags }}{{ if (gt (len .) 1) }}<a href="/tag/{{ slice . 1 }}">{{ . }}</a> {{ end }}{{ end }}
+	</footer>
+</section>
+{{ end }}
+`))

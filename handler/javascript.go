@@ -29,7 +29,7 @@ func (j JavaScriptHandler) Query(ctx context.Context, db storage.Storage, namesp
 }
 
 func (j JavaScriptHandler) Render(ctx context.Context, row *storage.Row) (Renderer, error) {
-	return TemplateRenderer{Template: javaScriptTemplate, Data: row.Summary}, nil
+	return TemplateRenderer{Template: javaScriptTemplate, Data: row}, nil
 }
 
 type JavaScript string
@@ -43,14 +43,14 @@ func (j JavaScript) ToRow() *storage.Row {
 	}
 }
 
-var javaScriptTemplate = template.Must(template.New("").Parse(`
-<section class="thing js">
-	<pre>function(canvas, ctx) {
-<textarea name="summary" class="js-code">{{ . }}</textarea>
+var javaScriptTemplate = template.Must(template.Must(commonTemplates.Clone()).Parse(`
+{{ define "content" }}
+<pre>function(canvas, ctx) {
+<textarea name="summary" class="js-code">{{ .Summary }}</textarea>
 }</pre>
 
-	<code><pre class="js-output"></pre></code>
+<code><pre class="js-output"></pre></code>
 
-	<canvas class="js-canvas"></canvas>
-</section>
+<canvas class="js-canvas"></canvas>
+{{ end }}
 `))

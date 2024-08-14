@@ -1,5 +1,5 @@
 htmx.onLoad(function(content) {
-  if (!(content.classList.contains("thing") && content.classList.contains("js"))) {
+  if (!(content.classList.contains("thing") && content.classList.contains("javascript"))) {
     return
   }
 

@@ -1,13 +1,10 @@
 package handler
 
 import (
-	"bytes"
 	"context"
 	"html/template"
 	"regexp"
 	"strings"
-
-	"github.com/yuin/goldmark"
 
 	"github.com/heyLu/lp/go/things/storage"
 )
@@ -67,23 +64,8 @@ type Note struct {
 
 func (n Note) ToRow() *storage.Row { return n.Row }
 
-var noteFuncs = template.FuncMap{
-	"markdown": func(md string) (template.HTML, error) {
-		buf := new(bytes.Buffer)
-		err := goldmark.Convert([]byte(md), buf)
-		if err != nil {
-			return "", err
-		}
-		return template.HTML(buf.String()), nil
-	},
-}
-
-var noteTemplate = template.Must(template.New("").Funcs(noteFuncs).Parse(`
-<section class="thing note">
-{{ if .Metadata }}
-	<time class="meta date-created" time="{{ .DateCreated }}" title="{{ .DateCreated }}">{{ .DateCreated.Format "2006-01-02 15:04:05" }}</time>
-{{ end }}
-
-	<div>{{ markdown .Summary }}</div>
-</section>
+var noteTemplate = template.Must(template.Must(commonTemplates.Clone()).Parse(`
+{{ define "content" }}
+<div>{{ markdown .Summary }}</div>
+{{ end }} 
 `))

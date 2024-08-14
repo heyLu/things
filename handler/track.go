@@ -79,14 +79,15 @@ func (t *Track) Notes() string { return t.Content.String }
 
 func (t *Track) ToRow() *storage.Row { return t.Row }
 
-var trackTemplate = template.Must(template.New("").Parse(`
-<section class="thing track">
-{{ if .Metadata }}
-	<time class="meta date-created" time="{{ .DateCreated }}" title="{{ .DateCreated }}">{{ .DateCreated.Format "2006-01-02 15:04:05" }}</time>
+var trackTemplate = template.Must(template.Must(commonTemplates.Clone()).Parse(`
+{{ define "content" }}
+{{ .Category }}
+{{ if .Num }}
+<span{{ if (eq .Category "mood") }} style="opacity: calc({{ .Num }}/100)"{{ end }}>
+	{{ .Num }}
+	{{ if (eq .Category "stretch")}}min{{ end }}
+</span>
 {{ end }}
-
-	<span class="content">
-{{ .Category }}{{ if .Num }} <span{{ if (eq .Category "mood") }} style="opacity: calc({{ .Num }}/100)"{{ end }}>{{ .Num }}{{ if (eq .Category "stretch")}}min{{ end }}</span>{{ end }}{{ if .Notes }}<p>{{ .Notes }}</p>{{ end }}
-	</span>
-</section>
+{{ if .Notes }}<p>{{ .Notes | markdown }}</p>{{ end }}
+{{ end }}
 `))
