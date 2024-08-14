@@ -72,7 +72,12 @@ func (bdh ByDateHandler) Query(ctx context.Context, db storage.Storage, namespac
 }
 
 func (_ ByDateHandler) Render(ctx context.Context, row *storage.Row) (Renderer, error) {
-	return StringRenderer(row.Summary), nil
+	if row.Kind == "overview" || row.Kind == "search" || row.Kind == "by-date" {
+		return StringRenderer(row.Kind + " " + row.Summary), nil
+	}
+
+	_, handler := All.For(row.Kind)
+	return handler.Render(ctx, row)
 }
 
 type ByDate struct {
