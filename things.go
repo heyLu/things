@@ -2,12 +2,16 @@ package main
 
 import (
 	"context"
+	"crypto/rand"
 	"embed"
 	"errors"
 	"flag"
 	"fmt"
+	"html"
 	"log"
 	"net/http"
+	"net/url"
+	"slices"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -40,15 +44,43 @@ func main() {
 		storage:  dbStorage,
 	}
 
+	things.kinds = make([]string, 0, len(things.handlers))
+	for _, h := range things.handlers {
+		kind, _ := h.CanHandle("")
+		if kind == "" {
+			log.Fatalf("invalid handler %#v", h)
+		}
+		things.kinds = append(things.kinds, kind)
+		slices.Sort(things.kinds)
+	}
+
 	router := chi.NewRouter()
 
-	router.Get("/*", things.HandleIndex)
-	router.Get("/thing", things.HandleThing)
-	router.Post("/thing", things.HandleThing)
+	router.Use(NamespaceMiddleware)
 
-	router.Get("/{kind}", things.HandleList)
-	router.Get("/{kind}/{category}", things.HandleList)
-	router.Get("/{kind}/{category}/{id}", things.HandleFind)
+	router.Get("/*", things.HandleIndex)
+
+	router.Route("/{namespace}", func(namespaceRouter chi.Router) {
+		namespaceRouter.Use(NamespaceMiddleware)
+
+		namespaceRouter.Get("/thing", things.HandleThing)
+		namespaceRouter.Post("/thing", things.HandleThing)
+
+		namespaceRouter.Get("/{kind}", things.HandleList)
+		namespaceRouter.Get("/{kind}/{category}", things.HandleList)
+		namespaceRouter.Get("/{kind}/{category}/{id}", things.HandleFind)
+	})
+
+	router.Get("/{kind}", func(w http.ResponseWriter, req *http.Request) {
+		// check if {kind} param is a valid kind, render a namespace index if not, e.g. to serve /fun-stuff as fun-stuff namespace
+		kind := chi.URLParam(req, "kind")
+		if _, ok := slices.BinarySearch(things.kinds, kind); kind != "" && !ok {
+			things.HandleIndex(w, req.WithContext(context.WithValue(req.Context(), NamespaceKey, kind)))
+			return
+		}
+
+		things.HandleList(w, req)
+	})
 
 	router.Handle("/static/*", http.FileServerFS(staticFS))
 
@@ -58,6 +90,7 @@ func main() {
 
 type Things struct {
 	handlers handler.Handlers
+	kinds    []string
 
 	storage storage.Storage
 }
@@ -71,6 +104,7 @@ func (t *Things) HandleIndex(w http.ResponseWriter, req *http.Request) {
 }
 
 func pageWithContent(w http.ResponseWriter, req *http.Request, input string, content handler.Renderer) {
+	namespace := req.Context().Value(NamespaceKey).(string)
 
 	fmt.Fprintf(w, `<!doctype html>
 <html>
@@ -85,10 +119,10 @@ func pageWithContent(w http.ResponseWriter, req *http.Request, input string, con
 
 <body>
 	<main>
-		<form hx-post="/thing" hx-target="#answer" hx-indicator="#waiting">
+		<form hx-post="/%s/thing" hx-target="#answer" hx-indicator="#waiting">
 			<input id="tell-me" name="tell-me" type="text" autofocus autocomplete="off" placeholder="tell me things"
 				value=%q
-				hx-get="/thing"
+				hx-get="/%s/thing"
 				hx-trigger="input changed delay:250ms"
 				hx-target="#answer"
 				hx-indicator="#waiting" />
@@ -97,20 +131,31 @@ func pageWithContent(w http.ResponseWriter, req *http.Request, input string, con
 		    <img id="waiting" class="htmx-indicator" src="/static/three-dots.svg" />
 	    </form>
 
-		<section id="answer">`, input)
+		<section id="answer">`,
+		url.PathEscape(namespace),
+		input,
+		url.PathEscape(namespace),
+	)
 
 	if content != nil {
 		content.Render(req.Context(), w)
 	}
 
-	fmt.Fprintln(w, `
+	fmt.Fprintf(w, `
 		</section>
+
 	</main>
+
+	<footer>
+		<span id="namespace">namespace: %s</span>
+	</footer>
 
 	<script src="/static/htmx.min.js"></script>
 	<script src="/static/things.js"></script>
 </body>
-</html>`)
+</html>`,
+		html.EscapeString(namespace),
+	)
 }
 
 func (t *Things) HandleThing(w http.ResponseWriter, req *http.Request) {
@@ -122,8 +167,6 @@ func (t *Things) HandleThing(w http.ResponseWriter, req *http.Request) {
 
 	tellMe := req.Form.Get("tell-me")
 
-	namespace := "test" // FIXME: get from path/cookie/stuff (like trackl does)
-
 	ctx, cancel := context.WithTimeout(req.Context(), 1*time.Second)
 	defer cancel()
 
@@ -131,7 +174,7 @@ func (t *Things) HandleThing(w http.ResponseWriter, req *http.Request) {
 
 	handled := false
 	for _, handler := range t.handlers {
-		err := t.handle(ctx, handler, t.storage, namespace, w, tellMe, save)
+		err := t.handle(ctx, handler, t.storage, w, tellMe, save)
 		if err == ErrNotHandled {
 			continue
 		}
@@ -150,7 +193,7 @@ func (t *Things) HandleThing(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
-func (t *Things) handle(ctx context.Context, hndl handler.Handler, storage storage.Storage, namespace string, w http.ResponseWriter, input string, save bool) error {
+func (t *Things) handle(ctx context.Context, hndl handler.Handler, storage storage.Storage, w http.ResponseWriter, input string, save bool) error {
 	kind, ok := hndl.CanHandle(input)
 	if !ok {
 		return ErrNotHandled
@@ -164,7 +207,7 @@ func (t *Things) handle(ctx context.Context, hndl handler.Handler, storage stora
 	}
 
 	row := thing.(handler.Thing).ToRow()
-	row.Namespace = namespace // TODO: from context in Insert probably?  or get it from context and pass it in 🤔
+	row.Namespace = ctx.Value(NamespaceKey).(string)
 
 	if save {
 		err := storage.Insert(ctx, row)
@@ -190,7 +233,7 @@ func (t *Things) handle(ctx context.Context, hndl handler.Handler, storage stora
 		)
 	}
 
-	listRenderer, err := t.renderList(ctx, hndl.(handler.Handler), namespace, input)
+	listRenderer, err := t.renderList(ctx, hndl.(handler.Handler), row.Namespace, input)
 	if err != nil {
 		return err
 	}
@@ -212,7 +255,7 @@ func (t *Things) HandleList(w http.ResponseWriter, req *http.Request) {
 
 	input := kind
 
-	namespace := "test"
+	namespace := req.Context().Value(NamespaceKey).(string)
 
 	renderer, err := t.renderList(req.Context(), hndl.(handler.Handler), namespace, input)
 	if err != nil {
@@ -251,4 +294,52 @@ func (t *Things) renderList(ctx context.Context, hndl handler.Handler, namespace
 
 func (t *Things) HandleFind(w http.ResponseWriter, req *http.Request) {
 	http.Error(w, "not implemented", http.StatusInternalServerError)
+}
+
+var NamespaceKey struct{}
+var NamespaceCookieName = "things_namespace"
+
+func NamespaceMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		namespace := chi.URLParam(req, "namespace")
+		if namespace != "" {
+			ctx := context.WithValue(req.Context(), NamespaceKey, namespace)
+			next.ServeHTTP(w, req.WithContext(ctx))
+			return
+		}
+
+		namespaceCookie, err := req.Cookie(NamespaceCookieName)
+		if err != nil && err != http.ErrNoCookie {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		if err == http.ErrNoCookie {
+			// http.Redirect(w, req, "/new-namespace", http.StatusSeeOther)
+			// return
+
+			ns := make([]byte, 8)
+			_, err := rand.Read(ns)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+
+			namespaceCookie = &http.Cookie{
+				Name:  NamespaceCookieName,
+				Value: fmt.Sprintf("%x", ns),
+			}
+		}
+
+		// set cookie again to refresh it
+		namespaceCookie.Path = "/"
+		namespaceCookie.MaxAge = 60 * 60 * 24 * 365
+		namespaceCookie.SameSite = http.SameSiteStrictMode
+		http.SetCookie(w, namespaceCookie)
+
+		namespace = namespaceCookie.Value
+
+		ctx := context.WithValue(req.Context(), NamespaceKey, namespace)
+		next.ServeHTTP(w, req.WithContext(ctx))
+	})
 }
