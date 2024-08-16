@@ -21,9 +21,9 @@ var All = Handlers([]Handler{
 	TaskHandler{},
 	ByDateHandler{},
 	JavaScriptHandler{},
-	MathHandler{},
 	SearchHandler{},
 	SettingHandler{},
+	MathHandler{},
 	HelpHandler{},
 	OverviewHandler{},
 })
