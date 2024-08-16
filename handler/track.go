@@ -86,11 +86,11 @@ func (t *Track) FormatValue() string {
 		if f < 0.01 {
 			return fmt.Sprintf("%dmin", int(i))
 		}
-		return fmt.Sprintf("%d:%d", int(i), int(f*100))
+		return fmt.Sprintf("%d:%02dmin", int(i), int(f*100))
 	case "sleep":
 		return fmt.Sprintf("%.2fhrs", t.Float.Float64)
 	case "ready", "up", "bed":
-		return fmt.Sprintf("%d:%dhrs", int(i), int(f*100))
+		return fmt.Sprintf("%d:%02dhrs", int(i), int(f*100))
 	case "groceries":
 		return fmt.Sprintf("%.2feur", t.Float.Float64)
 	case "weight":
