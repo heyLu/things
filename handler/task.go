@@ -34,6 +34,7 @@ func (nh TaskHandler) Parse(input string) (Thing, error) {
 				Bool:  false,
 				Valid: true,
 			},
+			// TODO: use Num as priority?
 		},
 	}
 
