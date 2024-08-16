@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"net/url"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -44,24 +45,31 @@ func main() {
 		storage:  dbStorage,
 	}
 
-	things.kinds = make([]string, 0, len(things.handlers))
+	things.kinds = make(map[string]bool, len(things.handlers))
 	for _, h := range things.handlers {
 		kind, _ := h.CanHandle("")
 		if kind == "" {
 			log.Fatalf("invalid handler %#v", h)
 		}
-		things.kinds = append(things.kinds, kind)
-		slices.Sort(things.kinds)
+		things.kinds[kind] = true
 	}
 
 	router := chi.NewRouter()
 
-	router.Use(NamespaceMiddleware)
+	namespaceMiddleware := NamespaceMiddleware{router: router, kinds: things.kinds}
+	tokenMiddleware := tokenMiddleware{dbStorage}
+	router.Use(
+		namespaceMiddleware.Middleware,
+		tokenMiddleware.Middleware,
+	)
 
 	router.Get("/*", things.HandleIndex)
 
+	router.Get("/token", tokenMiddleware.HandleToken)
+	router.Post("/token", tokenMiddleware.SetToken)
+
 	router.Route("/{namespace}", func(namespaceRouter chi.Router) {
-		namespaceRouter.Use(NamespaceMiddleware)
+		namespaceRouter.Use(namespaceMiddleware.Middleware)
 
 		namespaceRouter.Get("/thing", things.HandleThing)
 		namespaceRouter.Post("/thing", things.HandleThing)
@@ -74,7 +82,7 @@ func main() {
 	router.Get("/{kind}", func(w http.ResponseWriter, req *http.Request) {
 		// check if {kind} param is a valid kind, render a namespace index if not, e.g. to serve /fun-stuff as fun-stuff namespace
 		kind := chi.URLParam(req, "kind")
-		if _, ok := slices.BinarySearch(things.kinds, kind); kind != "" && !ok {
+		if _, ok := things.kinds[kind]; kind != "" && !ok {
 			things.HandleIndex(w, req.WithContext(context.WithValue(req.Context(), NamespaceKey, kind)))
 			return
 		}
@@ -90,7 +98,7 @@ func main() {
 
 type Things struct {
 	handlers handler.Handlers
-	kinds    []string
+	kinds    map[string]bool
 
 	storage storage.Storage
 }
@@ -182,7 +190,7 @@ func (t *Things) HandleThing(w http.ResponseWriter, req *http.Request) {
 		handled = true
 
 		if err != nil {
-			fmt.Fprintln(w, err)
+			fmt.Fprintln(w, html.EscapeString(err.Error()))
 		}
 
 		break
@@ -299,9 +307,25 @@ func (t *Things) HandleFind(w http.ResponseWriter, req *http.Request) {
 var NamespaceKey struct{}
 var NamespaceCookieName = "things_namespace"
 
-func NamespaceMiddleware(next http.Handler) http.Handler {
+type NamespaceMiddleware struct {
+	router chi.Router
+	kinds  map[string]bool
+}
+
+func (nm *NamespaceMiddleware) Middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		namespace := chi.URLParam(req, "namespace")
+		if req.URL.Path == "/token" || strings.HasPrefix(req.URL.Path, "/static/") {
+			next.ServeHTTP(w, req)
+			return
+		}
+
+		routeCtx := chi.NewRouteContext()
+		nm.router.Match(routeCtx, req.Method, req.URL.Path)
+
+		namespace := routeCtx.URLParam("namespace")
+		if _, ok := nm.kinds[routeCtx.URLParam("kind")]; namespace == "" && !ok {
+			namespace = routeCtx.URLParam("kind")
+		}
 		if namespace != "" {
 			ctx := context.WithValue(req.Context(), NamespaceKey, namespace)
 			next.ServeHTTP(w, req.WithContext(ctx))
@@ -317,6 +341,8 @@ func NamespaceMiddleware(next http.Handler) http.Handler {
 		if err == http.ErrNoCookie {
 			// http.Redirect(w, req, "/new-namespace", http.StatusSeeOther)
 			// return
+
+			// TODO: only set on first save? 🤔
 
 			ns := make([]byte, 8)
 			_, err := rand.Read(ns)
@@ -342,4 +368,138 @@ func NamespaceMiddleware(next http.Handler) http.Handler {
 		ctx := context.WithValue(req.Context(), NamespaceKey, namespace)
 		next.ServeHTTP(w, req.WithContext(ctx))
 	})
+}
+
+type tokenMiddleware struct {
+	storage.Storage
+}
+
+var TokenCookieName = "things_namespace_token"
+
+func (s tokenMiddleware) Middleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		if req.URL.Path == "/token" || strings.HasPrefix(req.URL.Path, "/static/") {
+			next.ServeHTTP(w, req)
+			return
+		}
+
+		namespace := req.Context().Value(NamespaceKey).(string)
+		tokens, err := s.getTokens(req.Context(), namespace)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		if len(tokens) == 0 {
+			next.ServeHTTP(w, req)
+			return
+		}
+
+		tokenCookie, err := req.Cookie(TokenCookieName)
+		if err != nil && err != http.ErrNoCookie {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		if err == http.ErrNoCookie || !slices.Contains(tokens, tokenCookie.Value) {
+			http.Redirect(w, req, "/token?redirect-to="+url.QueryEscape(req.URL.Path), http.StatusSeeOther)
+			return
+		}
+
+		// set cookie again to refresh it
+		tokenCookie.Path = "/"
+		tokenCookie.MaxAge = 60 * 60 * 24 * 365
+		tokenCookie.SameSite = http.SameSiteStrictMode
+		http.SetCookie(w, tokenCookie)
+
+		next.ServeHTTP(w, req)
+	})
+}
+
+func (s tokenMiddleware) getTokens(ctx context.Context, namespace string) ([]string, error) {
+	rows, err := s.Query(ctx, namespace, storage.Kind("setting"), storage.Summary("namespace.token"))
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	tokens := make([]string, 0, 1)
+	for rows.Next() {
+		var row storage.Row
+		err := rows.Scan(&row)
+		if err != nil {
+			return nil, err
+		}
+
+		if !row.Content.Valid {
+			return nil, fmt.Errorf("no value for namespace.token")
+		}
+		tokens = append(tokens, row.Content.String)
+	}
+
+	return tokens, nil
+}
+
+func (s tokenMiddleware) HandleToken(w http.ResponseWriter, req *http.Request) {
+	fmt.Fprintf(w, `
+<!doctype html>
+<html>
+<head>
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width,minimum-scale=1,initial-scale=1" />
+	<title>things</title>
+
+	<link rel="stylesheet" href="/static/things.css" />
+	<link rel="icon" href="data:image/svg+xml,<svg xmlns=%%22http://www.w3.org/2000/svg%%22 viewBox=%%220 0 100 100%%22><text y=%%22.9em%%22 font-size=%%2290%%22>🐦‍⬛</text></svg>" />
+</head>
+
+<body>
+	<main>
+		<form target="/token?redirect-to=%s" method="POST">
+			<input name="token" type="text" size="50" placeholder="token" />
+			<input type="submit" value="Set token" />
+		</form>
+
+		<hr />
+
+		<form target="/token?redirect-to=%s" method="POST">
+			<input type="hidden" name="delete" value="delete" />
+			<input type="submit" value="Delete token" />
+		</form>
+	</main>
+</body>
+</html>`,
+		html.EscapeString(req.URL.Query().Get("redirect-to")),
+		html.EscapeString(req.URL.Query().Get("redirect-to")),
+	)
+}
+
+func (s tokenMiddleware) SetToken(w http.ResponseWriter, req *http.Request) {
+	err := req.ParseForm()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	token := req.FormValue("token")
+	cookie := &http.Cookie{
+		Name:     TokenCookieName,
+		Value:    token,
+		Path:     "/",
+		MaxAge:   60 * 60 * 24 * 365,
+		SameSite: http.SameSiteStrictMode,
+	}
+
+	if req.FormValue("delete") == "delete" {
+		cookie.Value = ""
+		cookie.MaxAge = -1
+	}
+
+	http.SetCookie(w, cookie)
+
+	redirectTo := req.URL.Query().Get("redirect-to")
+	if redirectTo == "" {
+		redirectTo = "/"
+	}
+	http.Redirect(w, req, redirectTo, http.StatusSeeOther)
 }
