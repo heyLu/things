@@ -10,6 +10,7 @@ import (
 
 	"github.com/heyLu/lp/go/things/storage"
 	"github.com/yuin/goldmark"
+	"github.com/yuin/goldmark/extension"
 )
 
 var All = Handlers([]Handler{
@@ -117,12 +118,13 @@ func (tr TemplateRenderer) Render(ctx context.Context, w http.ResponseWriter) er
 	return tr.Template.ExecuteTemplate(w, "thing", tr.Data)
 }
 
+var commonMarkdown = goldmark.New(goldmark.WithExtensions(extension.GFM))
+
 var commonFuncs = template.FuncMap{
-	// TODO: parse as gfm
 	// TODO: linkify tags
 	"markdown": func(md string) (template.HTML, error) {
 		buf := new(bytes.Buffer)
-		err := goldmark.Convert([]byte(md), buf)
+		err := commonMarkdown.Convert([]byte(md), buf)
 		if err != nil {
 			return "", err
 		}
