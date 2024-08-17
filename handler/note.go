@@ -38,6 +38,7 @@ func (nh NoteHandler) Parse(input string) (Thing, error) {
 	about := urlRe.FindString(content)
 	if about != "" {
 		note.Ref.String = about
+		note.Ref.Valid = true
 	}
 
 	return note, nil
