@@ -56,5 +56,6 @@ func (s *Setting) ToRow() *storage.Row {
 
 var settingTemplate = template.Must(template.Must(commonTemplates.Clone()).Parse(`
 {{ define "content" }}
+{{ .Summary }}: {{ if (eq .Summary "namespace.token") }}********{{ else }}{{ .Content.String }}{{ end }}
 {{ end }}
 `))
