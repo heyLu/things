@@ -70,6 +70,10 @@ section#answer > ul {
   padding-left: 0;
 }
 
+section#answer > ul > li {
+  position: relative;
+}
+
 section.thing {
   position: relative;
 
@@ -99,6 +103,14 @@ section.thing .content > p:last-child {
 
     opacity: 0;
   }
+}
+
+.timeline {
+  color: #999;
+  font-size: small;
+
+  position: absolute;
+  left: -9em;
 }
 
 footer.meta * {

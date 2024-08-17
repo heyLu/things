@@ -281,6 +281,8 @@ func (t *Things) renderList(ctx context.Context, hndl handler.Handler, namespace
 	}
 	defer rows.Close()
 
+	var prevDate *time.Time
+
 	res := []handler.Renderer{}
 	for rows.Next() {
 		var row storage.Row
@@ -289,12 +291,19 @@ func (t *Things) renderList(ctx context.Context, hndl handler.Handler, namespace
 			return nil, err
 		}
 
+		seq := make([]handler.Renderer, 0, 2)
+		if prevDate == nil || prevDate.Format(time.DateOnly) != row.DateCreated.Format(time.DateOnly) {
+			seq = append(seq, handler.HTMLRenderer(fmt.Sprintf(`<span class="timeline">%s</span>`, row.DateCreated.Format(time.DateOnly))))
+			prevDate = &row.DateCreated
+		}
+
 		renderer, err := hndl.Render(ctx, &row)
 		if err != nil {
 			return nil, err
 		}
+		seq = append(seq, renderer)
 
-		res = append(res, renderer)
+		res = append(res, handler.SequenceRenderer(seq))
 	}
 
 	return handler.ListRenderer(res), nil
