@@ -25,14 +25,14 @@ main {
   }
 }
 
-footer {
+footer.info {
   position: fixed;
   bottom: 0;
 
   opacity: 0.5;
 }
 
-footer > * {
+footer.info > * {
   font-size: 0.8rem;
 }
 
@@ -101,7 +101,7 @@ section.thing .content > p:last-child {
   }
 }
 
-.meta * {
+footer.meta * {
   color: #999;
   font-size: small;
 }

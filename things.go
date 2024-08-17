@@ -154,7 +154,7 @@ func pageWithContent(w http.ResponseWriter, req *http.Request, input string, con
 
 	</main>
 
-	<footer>
+	<footer class="info">
 		<span id="namespace">namespace: %s</span>
 	</footer>
 
