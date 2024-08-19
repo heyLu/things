@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"net/url"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -77,6 +78,8 @@ func main() {
 		namespaceRouter.Get("/{kind}", things.HandleList)
 		namespaceRouter.Get("/{kind}/{category}", things.HandleList)
 		namespaceRouter.Get("/{kind}/{category}/{id}", things.HandleFind)
+
+		namespaceRouter.Post("/{kind}/{id}", things.HandleEdit)
 	})
 
 	router.Get("/{kind}", func(w http.ResponseWriter, req *http.Request) {
@@ -307,6 +310,41 @@ func (t *Things) renderList(ctx context.Context, hndl handler.Handler, namespace
 	}
 
 	return handler.ListRenderer(res), nil
+}
+
+func (t *Things) HandleEdit(w http.ResponseWriter, req *http.Request) {
+	err := req.ParseForm()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	id, err := strconv.ParseInt(chi.URLParam(req, "id"), 10, 64)
+	if err != nil {
+		return
+	}
+
+	row := storage.Row{
+		Metadata: storage.Metadata{
+			Namespace: chi.URLParam(req, "namespace"),
+			Kind:      chi.URLParam(req, "kind"),
+			ID:        id,
+		},
+	}
+
+	if _, ok := req.Form["bool"]; ok {
+		row.Bool.Bool = !(req.FormValue("bool") == "true") // flip current value
+		row.Bool.Valid = true
+	}
+
+	err = t.storage.Update(req.Context(), &row)
+	if err != nil {
+		log.Println(err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// TODO: write some response? 🤔
 }
 
 func (t *Things) HandleFind(w http.ResponseWriter, req *http.Request) {

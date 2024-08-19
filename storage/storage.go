@@ -15,6 +15,7 @@ import (
 type Storage interface {
 	Query(ctx context.Context, namespace string, conditions ...Condition) (Rows, error)
 	Insert(ctx context.Context, row *Row) error
+	Update(ctx context.Context, row *Row) error
 	Close() error
 }
 
@@ -153,6 +154,43 @@ func (dbs *dbStorage) Insert(ctx context.Context, row *Row) error {
 		row.Content, row.Ref, row.Number, row.Float, row.Bool, timeValue, fieldsJSON,
 		strings.Join(tags, ","), row.DateCreated.Unix(), row.DateModified.Unix(),
 	)
+	if err != nil {
+		return err
+	}
+
+	n, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if n != 1 {
+		return fmt.Errorf("expected %d changes, but %d changes happened", 1, n)
+	}
+
+	return nil
+}
+
+func (dbs *dbStorage) Update(ctx context.Context, row *Row) error {
+	if row.Namespace == "" || row.Kind == "" {
+		return fmt.Errorf("namespace and kind must be set")
+	}
+	if row.ID <= 0 {
+		return fmt.Errorf("id must be set")
+	}
+
+	query := "UPDATE things_v2 SET date_modified = ?"
+	queryArgs := make([]any, 0, 10)
+	queryArgs = append(queryArgs, time.Now().UTC().Unix())
+
+	if row.Bool.Valid {
+		query += ", bool = ?"
+		queryArgs = append(queryArgs, row.Bool)
+	}
+
+	query += " WHERE namespace = ? AND kind = ? AND id = ?"
+	queryArgs = append(queryArgs, row.Namespace, row.Kind, row.ID)
+
+	res, err := dbs.db.ExecContext(ctx, query, queryArgs...)
 	if err != nil {
 		return err
 	}
