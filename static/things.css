@@ -28,12 +28,12 @@ main {
 footer.info {
   position: fixed;
   bottom: 0;
-
-  opacity: 0.5;
 }
 
-footer.info > * {
+footer.info > *, footer.info a {
   font-size: 0.8rem;
+  text-decoration: none;
+  color: #999;
 }
 
 pre {

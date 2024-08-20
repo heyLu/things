@@ -69,6 +69,8 @@ func main() {
 	router.Get("/token", tokenMiddleware.HandleToken)
 	router.Post("/token", tokenMiddleware.SetToken)
 
+	router.Post("/namespace", things.HandleSetNamespace)
+
 	router.Route("/{namespace}", func(namespaceRouter chi.Router) {
 		namespaceRouter.Use(namespaceMiddleware.Middleware)
 
@@ -116,6 +118,17 @@ func (t *Things) HandleIndex(w http.ResponseWriter, req *http.Request) {
 
 func pageWithContent(w http.ResponseWriter, req *http.Request, input string, content handler.Renderer) {
 	namespace := req.Context().Value(NamespaceKey).(string)
+	namespaceCookie, err := req.Cookie(NamespaceCookieName)
+	if err != nil {
+		fmt.Fprintln(w, err)
+		return
+	}
+	defaultNamespace := namespaceCookie.Value
+
+	setNamespaceHTML := ""
+	if namespace != defaultNamespace {
+		setNamespaceHTML = fmt.Sprintf(` <a href="/namespace" hx-post="/namespace" hx-vals=%q>(set as default)</a>`, html.EscapeString(fmt.Sprintf(`{"namespace": %q}`, namespace)))
+	}
 
 	fmt.Fprintf(w, `<!doctype html>
 <html>
@@ -158,7 +171,7 @@ func pageWithContent(w http.ResponseWriter, req *http.Request, input string, con
 	</main>
 
 	<footer class="info">
-		<span id="namespace">namespace: %s</span>
+		<span id="namespace">namespace: <a href=%q>%s</a>%s</span>
 	</footer>
 
 	<script src="/static/htmx.min.js"></script>
@@ -166,7 +179,36 @@ func pageWithContent(w http.ResponseWriter, req *http.Request, input string, con
 </body>
 </html>`,
 		html.EscapeString(namespace),
+		html.EscapeString(namespace),
+		setNamespaceHTML,
 	)
+}
+
+func (t *Things) HandleSetNamespace(w http.ResponseWriter, req *http.Request) {
+	err := req.ParseForm()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	namespace := req.FormValue("namespace")
+	if namespace == "" {
+		http.Error(w, "invalid namespace", http.StatusBadRequest)
+		return
+	}
+
+	namespaceCookie := &http.Cookie{
+		Name:  NamespaceCookieName,
+		Value: namespace,
+	}
+
+	// set cookie again to refresh it
+	namespaceCookie.Path = "/"
+	namespaceCookie.MaxAge = 60 * 60 * 24 * 365
+	namespaceCookie.SameSite = http.SameSiteStrictMode
+	http.SetCookie(w, namespaceCookie)
+
+	w.Header().Set("HX-Redirect", "/")
 }
 
 func (t *Things) HandleThing(w http.ResponseWriter, req *http.Request) {
