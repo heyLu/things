@@ -77,6 +77,9 @@ func (_ ByDateHandler) Render(ctx context.Context, row *storage.Row) (Renderer, 
 	}
 
 	_, handler := All.For(row.Kind)
+	if handler == nil {
+		return nil, fmt.Errorf("no handler for %q", row.Kind)
+	}
 	return handler.Render(ctx, row)
 }
 
