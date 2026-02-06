@@ -3,10 +3,10 @@ module github.com/heyLu/lp/go/things
 go 1.22.4
 
 require (
-	github.com/go-chi/chi/v5 v5.2.0
-	github.com/mattn/go-sqlite3 v1.14.24
+	github.com/go-chi/chi/v5 v5.2.5
+	github.com/mattn/go-sqlite3 v1.14.33
 	github.com/stretchr/testify v1.9.0
-	github.com/yuin/goldmark v1.7.8
+	github.com/yuin/goldmark v1.7.16
 )
 
 require (
