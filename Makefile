@@ -1,3 +1,6 @@
+dev:
+	git ls-files | entr -c -r go run .
+
 statics: static/htmx.min.js static/three-dots.svg
 
 static/htmx.min.js:
