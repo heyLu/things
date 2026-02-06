@@ -119,11 +119,14 @@ func (t *Things) HandleIndex(w http.ResponseWriter, req *http.Request) {
 func pageWithContent(w http.ResponseWriter, req *http.Request, input string, content handler.Renderer) {
 	namespace := req.Context().Value(NamespaceKey).(string)
 	namespaceCookie, err := req.Cookie(NamespaceCookieName)
-	if err != nil {
+	if err != nil && err != http.ErrNoCookie {
 		fmt.Fprintln(w, err)
 		return
 	}
-	defaultNamespace := namespaceCookie.Value
+	defaultNamespace := ""
+	if namespaceCookie != nil {
+		defaultNamespace = namespaceCookie.Value
+	}
 
 	setNamespaceHTML := ""
 	if namespace != defaultNamespace {
