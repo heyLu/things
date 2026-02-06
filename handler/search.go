@@ -12,7 +12,7 @@ var _ Handler = SearchHandler{}
 type SearchHandler struct{}
 
 func (s SearchHandler) CanHandle(input string) (string, bool) {
-	return "search", strings.HasPrefix(input, "search")
+	return "search", input == "" || strings.HasPrefix(input, "search")
 }
 
 func (s SearchHandler) Parse(input string) (Thing, error) {

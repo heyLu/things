@@ -13,7 +13,7 @@ var _ Handler = OverviewHandler{}
 type OverviewHandler struct{}
 
 func (mh OverviewHandler) CanHandle(input string) (string, bool) {
-	return "overview", input == "" || strings.HasPrefix(input, "overview")
+	return "overview", strings.HasPrefix(input, "overview")
 }
 
 func (mh OverviewHandler) Parse(input string) (Thing, error) {

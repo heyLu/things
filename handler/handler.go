@@ -22,11 +22,11 @@ var All = Handlers([]Handler{
 	TaskHandler{},
 	ByDateHandler{},
 	JavaScriptHandler{},
-	SearchHandler{},
 	SettingHandler{},
 	MathHandler{},
 	HelpHandler{},
 	OverviewHandler{},
+	SearchHandler{},
 })
 
 type Handlers []Handler
