@@ -262,7 +262,7 @@ func (t *Things) handle(ctx context.Context, hndl handler.Handler, storage stora
 		return err
 	}
 
-	row := thing.(handler.Thing).ToRow()
+	row := thing.ToRow()
 	row.Namespace = ctx.Value(NamespaceKey).(string)
 
 	if save {
@@ -278,7 +278,7 @@ func (t *Things) handle(ctx context.Context, hndl handler.Handler, storage stora
 
 	if row.Summary != "" {
 		// TODO: thing.CanSave and only then preview?
-		previewRenderer, err := hndl.(handler.Handler).Render(ctx, row)
+		previewRenderer, err := hndl.Render(ctx, row)
 		if err != nil {
 			return err
 		}
@@ -289,7 +289,7 @@ func (t *Things) handle(ctx context.Context, hndl handler.Handler, storage stora
 		)
 	}
 
-	listRenderer, err := t.renderList(ctx, hndl.(handler.Handler), row.Namespace, input)
+	listRenderer, err := t.renderList(ctx, hndl, row.Namespace, input)
 	if err != nil {
 		return err
 	}
@@ -313,7 +313,7 @@ func (t *Things) HandleList(w http.ResponseWriter, req *http.Request) {
 
 	namespace := req.Context().Value(NamespaceKey).(string)
 
-	renderer, err := t.renderList(req.Context(), hndl.(handler.Handler), namespace, input)
+	renderer, err := t.renderList(req.Context(), hndl, namespace, input)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
