@@ -26,7 +26,7 @@ func (s SearchHandler) Query(ctx context.Context, db storage.Storage, namespace 
 
 func (s SearchHandler) Render(ctx context.Context, row *storage.Row) (Renderer, error) {
 	if row.Kind == "search" || row.Kind == "overview" {
-		return StringRenderer("searching..."), nil
+		return StringRenderer(""), nil
 	}
 
 	_, handler := All.For(row.Kind)
