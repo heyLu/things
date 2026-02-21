@@ -64,7 +64,7 @@ func main() {
 		tokenMiddleware.Middleware,
 	)
 
-	router.Get("/*", things.HandleIndex)
+	router.Get("/", things.HandleList)
 
 	router.Get("/token", tokenMiddleware.HandleToken)
 	router.Post("/token", tokenMiddleware.SetToken)
