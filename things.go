@@ -164,7 +164,10 @@ func pageWithContent(w http.ResponseWriter, req *http.Request, input string, con
 	)
 
 	if content != nil {
-		content.Render(req.Context(), w)
+		err := content.Render(req.Context(), w)
+		if err != nil {
+			log.Printf("failed to render: %s", err)
+		}
 	}
 
 	fmt.Fprintf(w, `
