@@ -141,7 +141,9 @@ var commonTemplates = template.Must(template.New("").Funcs(commonFuncs).Parse(`
 	</div>
 
 	<footer class="meta">
-		<time class="date-created" time="{{ .DateCreated }}" title="{{ .DateCreated }}">{{ .DateCreated.Format "2006-01-02 15:04:05" }}</time>
+		<a href="/{{ .Namespace }}/{{ .Kind }}/{{ .ID }}">
+			<time class="date-created" time="{{ .DateCreated }}" title="{{ .DateCreated }}">{{ .DateCreated.Format "2006-01-02 15:04:05" }}</time>
+		</a>
 		{{ if (gt .DateModified.Unix 0) }}
 			<time class="date-modified" time="{{ .DateModified }}" title="{{ .DateModified}}">{{ .DateModified.Format "2006-01-02 15:04:05" }}</time>
 		{{ end }}

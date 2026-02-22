@@ -12,7 +12,10 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
+var ErrNotFound = fmt.Errorf("not found")
+
 type Storage interface {
+	Find(ctx context.Context, namespace string, id any) (*Row, error)
 	Query(ctx context.Context, namespace string, conditions ...Condition) (Rows, error)
 	Insert(ctx context.Context, row *Row) error
 	Update(ctx context.Context, row *Row) error
@@ -74,6 +77,28 @@ func (dbs *dbStorage) Close() error {
 }
 
 // v2 sketch
+
+func (dbs *dbStorage) Find(ctx context.Context, namespace string, id any) (*Row, error) {
+	query := "SELECT namespace, kind, id, summary, content, ref, number, float, bool, time, jsonb(fields_json), tags, date_created, date_modified FROM things_v2 WHERE namespace = ? and id = ?"
+	rows, err := dbs.db.QueryContext(ctx, query, namespace, id)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	dbRows := dbRows{rows: rows}
+	if !dbRows.Next() {
+		return nil, ErrNotFound
+	}
+
+	var row Row
+	err = dbRows.Scan(&row)
+	if err != nil {
+		return nil, fmt.Errorf("scan: %w", err)
+	}
+
+	return &row, nil
+}
 
 type Condition struct {
 	expr string

@@ -78,9 +78,8 @@ func main() {
 		namespaceRouter.Post("/thing", things.HandleThing)
 
 		namespaceRouter.Get("/{kind}", things.HandleList)
-		namespaceRouter.Get("/{kind}/{category}", things.HandleList)
-		namespaceRouter.Get("/{kind}/{category}/{id}", things.HandleFind)
 
+		namespaceRouter.Get("/{kind}/{id}", things.HandleFind)
 		namespaceRouter.Post("/{kind}/{id}", things.HandleEdit)
 	})
 
@@ -393,7 +392,31 @@ func (t *Things) HandleEdit(w http.ResponseWriter, req *http.Request) {
 }
 
 func (t *Things) HandleFind(w http.ResponseWriter, req *http.Request) {
-	http.Error(w, "not implemented", http.StatusInternalServerError)
+	row, err := t.storage.Find(req.Context(), chi.URLParam(req, "namespace"), chi.URLParam(req, "id"))
+	if err != nil {
+		if errors.Is(err, storage.ErrNotFound) {
+			http.Error(w, err.Error(), http.StatusNotFound)
+			return
+		}
+
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// TODO: handle generic case/use a generic one for editing via a form
+	_, hndl := t.handlers.For(row.Kind)
+	renderer, err := hndl.Render(req.Context(), row)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/html")
+
+	err = renderer.Render(req.Context(), w)
+	if err != nil {
+		log.Printf("could not render: %s", err)
+	}
 }
 
 var NamespaceKey struct{}
