@@ -155,7 +155,7 @@ var commonTemplates = template.Must(template.New("").Funcs(commonFuncs).Parse(`
 			<time class="date-modified" time="{{ .DateModified }}" title="{{ .DateModified}}">{{ .DateModified.Format "2006-01-02 15:04:05" }}</time>
 		{{ end }}
 
-		<span class="tags">{{ range .Tags }}{{ if (gt (len .) 1) }}<a href="/tag/{{ slice . 1 }}">{{ . }}</a> {{ end }}{{ end }}
+		<span class="tags">{{ range .Tags }}{{ if (gt (len .) 1) }}<a href="/tag/{{ slice . 1 }}">{{ . }}</a> {{ end }}{{ end }}</span>
 
 		{{ if .Ref.Valid }}<span class="ref">see also: <a href="{{ .Ref.String }}">{{ .Ref.String }}</a></span>{{ end }}
 	</footer>
