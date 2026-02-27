@@ -24,18 +24,18 @@ func (nh NoteHandler) Parse(input string) (Thing, error) {
 	if idx == -1 {
 		idx = len(input)
 	}
-	content := input[idx:]
+	summary := input[idx+1:]
 
 	note := Note{
 		Row: &storage.Row{
 			Metadata: storage.Metadata{
 				Kind: "note",
 			},
-			Summary: content,
+			Summary: summary,
 		},
 	}
 
-	about := urlRe.FindString(content)
+	about := urlRe.FindString(summary)
 	if about != "" {
 		note.Ref.String = about
 		note.Ref.Valid = true
@@ -67,6 +67,12 @@ func (n Note) ToRow() *storage.Row { return n.Row }
 
 var noteTemplate = template.Must(template.Must(commonTemplates.Clone()).Parse(`
 {{ define "content" }}
-<div>{{ markdown .Summary }}</div>
+<header>
+	{{ if .Content.Valid }}<h1>{{ end }}
+	{{ markdown .Summary }}
+	{{ if .Content.Valid }}</h1>{{ end }}
+</header>
+
+{{ markdown .Content.String }}
 {{ end }} 
 `))
