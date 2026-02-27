@@ -1,6 +1,12 @@
-* {
-  font-size: 1.1rem;
+:root, input, h1 {
+  font-size: 1.05rem;
   font-family: monospace;
+
+  --background-color: #222;
+  --text-color: #eee;
+  --link-color: pink;
+
+  --border-color: rgba(0, 0, 0, 0.1);
 }
 
 body {
@@ -22,6 +28,25 @@ main {
 @media (min-width: 50em) {
   main {
     width: 50em;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    background-color: var(--background-color);
+    color: var(--text-color);
+
+    --border-color: #666;
+  }
+
+  a {
+    color: var(--link-color);
+  }
+
+  input, textarea {
+    color: var(--text-color);
+    background-color: #555;
+    mix-blend-mode: difference;
   }
 }
 
@@ -77,7 +102,7 @@ section#answer > ul > li {
 section.thing {
   position: relative;
 
-  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+  border-bottom: 1px solid var(--border-color);
   padding-bottom: 0.2ex;
   margin-bottom: 1ex;
 }
