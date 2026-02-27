@@ -7,6 +7,7 @@ import (
 	"html"
 	"html/template"
 	"net/http"
+	"strings"
 
 	"github.com/heyLu/lp/go/things/storage"
 	"github.com/yuin/goldmark"
@@ -130,6 +131,12 @@ var commonFuncs = template.FuncMap{
 			return "", err
 		}
 		return template.HTML(buf.String()), nil
+	},
+	"lines": func(s string) int {
+		return strings.Count(s, "\n")
+	},
+	"add": func(a, b int) int {
+		return a + b
 	},
 }
 

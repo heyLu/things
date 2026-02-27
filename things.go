@@ -421,12 +421,7 @@ func (t *Things) HandleFind(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "text/html")
-
-	err = renderer.Render(req.Context(), w)
-	if err != nil {
-		log.Printf("could not render: %s", err)
-	}
+	pageWithContent(w, req, "", renderer)
 }
 
 var NamespaceKey struct{}

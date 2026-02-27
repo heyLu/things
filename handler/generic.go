@@ -45,10 +45,10 @@ var genericTemplate = template.Must(template.Must(commonTemplates.Clone()).Parse
 {{ define "content" }}
 <form method="POST" action="">
   	<div>
-  		<input name="summary" type="text" value="{{ .Summary }}" />
+  		<input name="summary" type="text" size="70" value="{{ .Summary }}" />
   	</div>
   	<div>
-		<textarea name="content">{{ .Content.String }}</textarea>
+		<textarea rows="{{ add (lines .Content.String) 3 }}" cols="70" name="content">{{ .Content.String }}</textarea>
 	</div>
 	<div>
 		<input type="text" value="{{ .Tags }}" />
