@@ -1,5 +1,5 @@
 dev:
-	git ls-files | entr -c -r go run .
+	git ls-files -co | entr -c -r go run .
 
 statics: static/htmx.min.js static/three-dots.svg
 
