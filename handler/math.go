@@ -37,7 +37,7 @@ func (mh MathHandler) Render(ctx context.Context, row *storage.Row) (Renderer, e
 
 	err := cmd.Run()
 	if err != nil {
-		return nil, fmt.Errorf(buf.String())
+		return nil, fmt.Errorf("%s", buf.String())
 	}
 
 	return StringRenderer(buf.String()), nil
