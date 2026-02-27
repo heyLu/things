@@ -379,8 +379,8 @@ func (t *Things) HandleEdit(w http.ResponseWriter, req *http.Request) {
 		},
 	}
 
-	if _, ok := req.Form["bool"]; ok {
-		row.Bool.Bool = !(req.FormValue("bool") == "true") // flip current value
+	if req.FormValue("bool-valid") == "true" {
+		row.Bool.Bool = req.FormValue("bool") == "on"
 		row.Bool.Valid = true
 	}
 
@@ -391,7 +391,8 @@ func (t *Things) HandleEdit(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	// TODO: write some response? 🤔
+	w.Header().Set("Location", req.URL.Path)
+	w.WriteHeader(http.StatusSeeOther)
 }
 
 func (t *Things) HandleFind(w http.ResponseWriter, req *http.Request) {
@@ -406,9 +407,7 @@ func (t *Things) HandleFind(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	// TODO: handle generic case/use a generic one for editing via a form
-	_, hndl := t.handlers.For(row.Kind)
-	renderer, err := hndl.Render(req.Context(), row)
+	renderer, err := (&handler.GenericHandler{}).Render(req.Context(), row)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
