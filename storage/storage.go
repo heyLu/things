@@ -118,18 +118,19 @@ func Match(field string, val string) Condition {
 }
 
 func (dbs *dbStorage) Query(ctx context.Context, namespace string, conditions ...Condition) (Rows, error) {
-	query := "SELECT namespace, kind, id, summary, content, ref, number, float, bool, time, jsonb(fields_json), tags, date_created, date_modified FROM things_v2 WHERE namespace = ?"
+	var query strings.Builder
+	query.WriteString("SELECT namespace, kind, id, summary, content, ref, number, float, bool, time, jsonb(fields_json), tags, date_created, date_modified FROM things_v2 WHERE namespace = ?")
 	queryArgs := []any{namespace}
 
 	for _, condition := range conditions {
-		query += " AND " + condition.expr
+		query.WriteString(" AND " + condition.expr)
 		args := condition.args
 		if len(args) > 0 {
 			queryArgs = append(queryArgs, args...)
 		}
 	}
 
-	rows, err := dbs.db.QueryContext(ctx, query+" ORDER BY date_created DESC", queryArgs...)
+	rows, err := dbs.db.QueryContext(ctx, query.String()+" ORDER BY date_created DESC", queryArgs...)
 	if err != nil {
 		return nil, err
 	}
@@ -240,8 +241,8 @@ func (dbs *dbStorage) Update(ctx context.Context, row *Row) error {
 
 func tagsFromString(s string) []string {
 	var tags []string
-	parts := strings.Split(s, " ")
-	for _, part := range parts {
+	parts := strings.SplitSeq(s, " ")
+	for part := range parts {
 		if len(part) > 0 && part[0] == '#' {
 			if tags == nil {
 				tags = make([]string, 0, 5)
@@ -267,7 +268,7 @@ type Row struct {
 }
 
 func (dbr *dbRows) Scan(row *Row) error {
-	var fieldsRaw interface{}
+	var fieldsRaw any
 	var tags string
 	var dateCreated int64
 	var dateModified int64
