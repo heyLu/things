@@ -65,14 +65,20 @@ func (n Task) ToRow() *storage.Row { return n.Row }
 var taskTemplate = template.Must(template.Must(commonTemplates.Clone()).Parse(`
 {{ define "content" }}
 <div{{ if .Bool.Bool }} class="done"{{ end }}>
-	{{ if .Bool.Bool }}<s>{{ end }}
-	{{ markdown .Summary }}
-	{{ if .Bool.Bool }}</s>{{ end }}
+	<header>
+		{{ if .Bool.Bool }}<s>{{ end }}
+		<input type="checkbox"
+			{{ if .Bool.Bool }} checked{{ end }}
+			{{ if (gt .ID 0) }} hx-post="/{{ .Namespace }}/{{ .Kind }}/{{ .ID }}" hx-include="next [name='bool']"{{ end }}
+			/>
+
+		<h1>{{ markdown .Summary }}</h1>
+		{{ if .Bool.Bool }}</s>{{ end }}
+	</header>
+
+	{{ markdown .Content.String }}
+
 </div>
-<input type="checkbox"
-	{{ if .Bool.Bool }} checked{{ end }}
-	{{ if (gt .ID 0) }} hx-post="/{{ .Namespace }}/{{ .Kind }}/{{ .ID }}" hx-include="next [name='bool']"{{ end }}
-	/>
 <input type="hidden" name="bool" value="{{ .Bool.Bool }}" />
 {{ end }} 
 `))
