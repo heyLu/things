@@ -148,16 +148,16 @@ var commonTemplates = template.Must(template.New("").Funcs(commonFuncs).Parse(`
 	</div>
 
 	<footer class="meta">
-		<a href="/{{ .Namespace }}/{{ .Kind }}/{{ .ID }}">
-			<time class="date-created" time="{{ .DateCreated }}" title="{{ .DateCreated }}">{{ .DateCreated.Format "2006-01-02 15:04:05" }}</time>
-		</a>
+		<div class="kind"><em>{{ .Kind }}</em></div>
+
+		<a href="/{{ .Namespace }}/{{ .Kind }}/{{ .ID }}"><time class="date-created" time="{{ .DateCreated }}" title="{{ .DateCreated }}">{{ .DateCreated.Format "2006-01-02 15:04:05" }}</time></a>
 		{{ if (gt .DateModified.Unix 0) }}
 			<time class="date-modified" time="{{ .DateModified }}" title="{{ .DateModified}}">{{ .DateModified.Format "2006-01-02 15:04:05" }}</time>
 		{{ end }}
 
-		<span class="tags">{{ range .Tags }}{{ if (gt (len .) 1) }}<a href="/tag/{{ slice . 1 }}">{{ . }}</a> {{ end }}{{ end }}</span>
+		<div class="tags">{{ range .Tags }}{{ if (gt (len .) 1) }}<a href="/tag/{{ slice . 1 }}">{{ . }}</a> {{ end }}{{ end }}</div>
 
-		{{ if .Ref.Valid }}<span class="ref">see also: <a href="{{ .Ref.String }}">{{ .Ref.String }}</a></span>{{ end }}
+		{{ if .Ref.Valid }}<div class="ref">see also: <a href="{{ .Ref.String }}">{{ .Ref.String }}</a></div>{{ end }}
 	</footer>
 </section>
 {{ end }}
