@@ -368,6 +368,7 @@ func (t *Things) HandleEdit(w http.ResponseWriter, req *http.Request) {
 
 	id, err := strconv.ParseInt(chi.URLParam(req, "id"), 10, 64)
 	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
@@ -377,11 +378,18 @@ func (t *Things) HandleEdit(w http.ResponseWriter, req *http.Request) {
 			Kind:      chi.URLParam(req, "kind"),
 			ID:        id,
 		},
+
+		Summary: req.FormValue("summary"),
+	}
+
+	if req.FormValue("content") != "" {
+		row.Content.Valid = true
+		row.Content.String = req.FormValue("content")
 	}
 
 	if req.FormValue("bool-valid") == "true" {
-		row.Bool.Bool = req.FormValue("bool") == "on"
 		row.Bool.Valid = true
+		row.Bool.Bool = req.FormValue("bool") == "on"
 	}
 
 	err = t.storage.Update(req.Context(), &row)

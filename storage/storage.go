@@ -207,6 +207,12 @@ func (dbs *dbStorage) Update(ctx context.Context, row *Row) error {
 	queryArgs := make([]any, 0, 10)
 	queryArgs = append(queryArgs, time.Now().UTC().Unix())
 
+	query += ", summary = ?"
+	queryArgs = append(queryArgs, row.Summary)
+
+	query += ", content = ?"
+	queryArgs = append(queryArgs, row.Content)
+
 	if row.Bool.Valid {
 		query += ", bool = ?"
 		queryArgs = append(queryArgs, row.Bool)
