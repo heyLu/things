@@ -13,8 +13,6 @@ body {
   display: flex;
 
   flex-direction: column;
-
-  align-items: center;
 }
 
 main {
@@ -23,6 +21,14 @@ main {
   flex-direction: column;
 
   max-width: 70em;
+}
+
+.thing form input, .thing form textarea {
+  width: 100%;
+}
+
+.thing form .field {
+  margin-bottom: 1ex;
 }
 
 @media (min-width: 50em) {
@@ -117,6 +123,10 @@ section.thing .content > p:last-child {
 }
 
 @media (min-width: 50em) {
+  body {
+    align-items: center;
+  }
+
   .meta {
     position: absolute;
     right: -15em;

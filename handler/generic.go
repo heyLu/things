@@ -44,18 +44,18 @@ type Generic struct {
 var genericTemplate = template.Must(template.Must(commonTemplates.Clone()).Parse(`
 {{ define "content" }}
 <form method="POST" action="">
-  	<div>
+  	<div class="field">
   		<input name="summary" type="text" size="70" value="{{ .Summary }}" />
   	</div>
-  	<div>
+  	<div class="field">
 		<textarea rows="{{ add (lines .Content.String) 3 }}" cols="70" name="content">{{ .Content.String }}</textarea>
 	</div>
-	<div>
+	<div class="field">
 		<input type="text" value="{{ .Tags }}" />
 	</div>
 
 	{{ if .Number.Valid }}
-	<div>
+	<div class="field">
 		<input name="number" type="number" value="{{ .Number.Int64 }}" />
 	</div>
 	{{ end }}
@@ -64,29 +64,29 @@ var genericTemplate = template.Must(template.Must(commonTemplates.Clone()).Parse
 		<input name="float" type="number" value="{{ .Number.Float }}" />
 	</div>
 	{{ end }}
-	<div>
+	<div class="field">
 		<input name="bool-valid" type="hidden" value="{{ .Bool.Valid }}" />
 		<input name="bool" type="checkbox" {{ if not .Bool.Valid }}disabled{{ end }} {{ if .Bool.Bool }}checked{{ end }} />
 	</div>
 	{{ if .Time.Valid }}
-	<div>
+	<div class="field">
 		<input type="time" value="{{ .Time.Time }}" />
 	</div>
 	{{ end }}
 	{{ if .Number.Valid }}
-	<div>
+	<div class="field">
 		<input type="number" value="{{ .Number.Int64 }}" />
 	</div>
 	{{ end }}
 
 	{{ range $k, $v := .Fields }}
-	<div>
+	<div class="field">
 		<label for="{{ $k }}" />
 		<input name="{{ $k }}" type="text" value="{{ $v }}" />
 	</div>
 	{{ end }}
 
-	<div>
+	<div class="field">
 		<input type="submit" value="save" />
 	</div>
 </form>
