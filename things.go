@@ -415,11 +415,30 @@ func (t *Things) HandleFind(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	renderer, err := (&handler.GenericHandler{}).Render(req.Context(), row)
+	var kindRenderer handler.Renderer
+	kind, hndl := t.handlers.For(row.Kind)
+	if hndl != nil {
+		kindRenderer, err = hndl.Render(req.Context(), row)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	}
+	if kind == "" {
+		kindRenderer = handler.StringRenderer(fmt.Sprintf("no renderer for %q", row.Kind))
+	}
+
+	editRenderer, err := (&handler.GenericHandler{}).Render(req.Context(), row)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	renderer := handler.SequenceRenderer([]handler.Renderer{
+		editRenderer,
+		handler.HTMLRenderer("<em>preview:</em>"),
+		kindRenderer,
+	})
 
 	pageWithContent(w, req, "", renderer)
 }
