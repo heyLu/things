@@ -136,28 +136,29 @@ func pageWithContent(w http.ResponseWriter, req *http.Request, input string, con
 <html>
 <head>
 	<meta charset="utf-8" />
-	<meta name="viewport" content="width=device-width,minimum-scale=1,initial-scale=1" />
+	<meta name="viewport" content="width=device-width,initial-scale=1" />
 	<title>things</title>
 
+	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@1.0.4/css/bulma.min.css" />
 	<link rel="stylesheet" href="/static/things.css" />
 	<link rel="icon" href="data:image/svg+xml,<svg xmlns=%%22http://www.w3.org/2000/svg%%22 viewBox=%%220 0 100 100%%22><text y=%%22.9em%%22 font-size=%%2290%%22>🐦‍⬛</text></svg>" />
 </head>
 
 <body>
-	<main>
-		<form hx-post="/%s/thing" hx-target="#answer" hx-indicator="#waiting">
-			<input id="tell-me" name="tell-me" type="text" autofocus autocomplete="off" placeholder="tell me things"
+	<main class="section container">
+		<form class="columns" hx-post="/%s/thing" hx-target="#answer" hx-indicator="#waiting">
+			<input class="column input" id="tell-me" name="tell-me" type="text" autofocus autocomplete="off" placeholder="tell me things"
 				value=%q
 				hx-get="/%s/thing"
 				hx-trigger="input changed delay:250ms"
 				hx-target="#answer"
 				hx-indicator="#waiting" />
 			<input name="save" value="yes" hidden />
-			<input type="submit" value="💾" />
+			<input class="column is-1 input" type="submit" value="💾" />
 		    <img id="waiting" class="htmx-indicator" src="/static/three-dots.svg" />
 	    </form>
 
-		<section id="answer">`,
+		<section id="answer" class="">`,
 		url.PathEscape(namespace),
 		input,
 		url.PathEscape(namespace),

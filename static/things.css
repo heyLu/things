@@ -1,5 +1,5 @@
-:root, input, h1 {
-  font-size: 1.05rem;
+:root, .thing, input, h1 {
+  /* font-size: 1.05rem; */
   font-family: monospace;
 
   --background-color: #222;

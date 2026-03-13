@@ -142,7 +142,7 @@ var commonFuncs = template.FuncMap{
 
 var commonTemplates = template.Must(template.New("").Funcs(commonFuncs).Parse(`
 {{ define "thing" }}
-<section class="thing {{ .Kind }}">
+<section class="section thing {{ .Kind }}">
 	<div class="content">
 	{{ template "content" . }}
 	</div>
