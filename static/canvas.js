@@ -1,3 +1,24 @@
+class SVGPath2D extends Path2D{
+  constructor(parts = []) {
+    super(parts.join(' '));
+
+    this.parts = parts;
+  }
+
+  lineTo(x, y) {
+    if (this.parts.length == 0) {
+      this.parts.push(`M${x} ${y}`);
+    }
+    this.parts.push(`L${x} ${y}`);
+
+    super.lineTo(x, y);
+  }
+
+  toSVGString() {
+    return this.parts.join(' ');
+  }
+}
+
 class Canvas {
   constructor(canvas, window = null) {
     this.canvas = canvas;
@@ -22,6 +43,18 @@ class Canvas {
     };
 
     this.objects = [];
+    if (localStorage.hasOwnProperty("objects")) {
+      let oldObjects = JSON.parse(localStorage.getItem("objects"));
+      for (let obj of oldObjects) {
+        switch (obj.type) {
+          case "path":
+            this.objects.push({type: "path", path: new SVGPath2D(obj.path.parts)});
+            break;
+          default:
+            this.objects.push(obj);
+        }
+      }
+    }
 
     this.setupEvents();
   }
@@ -44,7 +77,7 @@ class Canvas {
         action = "move";
       } else if (ev.pointerType == "mouse" && ev.button == 0) {
         action = "draw";
-        self.path = new Path2D();
+        self.path = new SVGPath2D();
       }
 
       if (action == null) {
@@ -62,6 +95,9 @@ class Canvas {
           break;
         case "draw":
           self.objects.push({type: "path", path: self.path});
+
+          localStorage.setItem("objects", JSON.stringify(self.objects));
+
           self.path = null;
           self.action = null;
           self.lastEv = null;
