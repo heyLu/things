@@ -1,107 +1,114 @@
-let canvas = document.getElementById("canvas");
+class Canvas {
+  constructor(canvas, window = null) {
+    this.canvas = canvas;
 
-// let rect = canvas.getBoundingClientRect();
-// canvas.width = rect.width;
-// canvas.height = rect.height;
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
+    if (window) {
+      this.canvas.width = window.innerWidth;
+      this.canvas.height = window.innerHeight;
+    } else {
+      let rect = canvas.getBoundingClientRect();
+      this.canvas.width = rect.width;
+      this.canvas.height = rect.height;
+    }
 
-let context = canvas.getContext("2d");
+    this.context = canvas.getContext('2d');
+    this.lastEv = null;
 
-let worldPos = {x: 0, y: 0};
-let pixelPos = {
-  offsetX: canvas.width / 2,
-  offsetY: canvas.height / 2,
-  zoom: 1,
-};
-let objects = [{type: "rect", x: -100, y: -50, width: 10, height: 10}];
-let lastEv = null;
+    this.worldPos = {x: 0, y: 0};
+    this.pixelPos = {
+      offsetX: this.canvas.width / 2,
+      offsetY: this.canvas.height / 2,
+    };
 
-draw({offsetX: 0, offsetY: 0});
-
-function draw(ev) {
-  context.clearRect(0, 0, canvas.width, canvas.height);
-
-  let offsetX = 0;
-  let offsetY = 0;
-  if (lastEv) {
-    offsetX = lastEv.offsetX - ev.offsetX;
-    offsetY = lastEv.offsetY - ev.offsetY;
+    this.setupEvents();
   }
 
-  context.save();
-  context.translate(pixelPos.offsetX + offsetX, pixelPos.offsetY + offsetY);
+  setupEvents() {
+    let self = this;
 
-  context.save();
-  context.fillStyle = "#777";
-  context.beginPath();
-  const dotSize = 1.3;
-  const gridSize = 200;
-  const maxWidth = Math.round(canvas.width / 2 / gridSize) * gridSize;
-  const maxHeight = Math.round(canvas.height / 2 / gridSize) * gridSize;
-  for (let x = -maxWidth; x <= maxWidth; x += gridSize) {
-    for (let y = -maxHeight; y <= maxHeight; y += gridSize) {
-      context.moveTo(x, y);
-      let size = dotSize;
-      if (x % 1000 == 0 && y % 1000 == 0) {
-        size = 2;
+    this.canvas.addEventListener("pointermove", (ev) => { self.draw(ev) });
+
+    this.canvas.addEventListener("pointerdown", (ev) => {
+      if (ev.pointerType == "mouse" && ev.button != 0) {
+        return;
       }
-      context.ellipse(x, y, size, size, 0, 0, 360);   
-    }
+
+      self.lastEv = ev;
+    });
+
+    this.canvas.addEventListener("pointerup", (ev) => {
+      if (!self.lastEv) {
+        return;
+      }
+
+      self.pixelPos.offsetX += self.lastEv.offsetX - ev.offsetX;
+      self.pixelPos.offsetY += self.lastEv.offsetY - ev.offsetY;
+
+      self.lastEv = null;
+    });
+
+    this.canvas.addEventListener("pointerleave", (ev) => {
+      if (!self.lastEv) {
+        return;
+      }
+
+      self.pixelPos.offsetX += self.lastEv.offsetX - ev.offsetX;
+      self.pixelPos.offsetY += self.lastEv.offsetY - ev.offsetY;
+
+      self.lastEv = null;
+
+      self.draw(ev);
+    });
   }
-  context.closePath();
-  context.fill();
-  context.restore();
 
-  for (let obj of objects) {
-    switch (obj.type) {
-      case "rect":
-        context.fillRect(obj.x, obj.y, obj.width, obj.height);
-        break;
-      default:
-        console.error("unknown object type", obj.type);
+  draw(ev = {offsetX: 0, offsetY: 0}) {
+    this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+    let offsetX = 0;
+    let offsetY = 0;
+    if (this.lastEv) {
+      offsetX = this.lastEv.offsetX - ev.offsetX;
+      offsetY = this.lastEv.offsetY - ev.offsetY;
     }
+
+    this.context.save();
+    this.context.translate(this.pixelPos.offsetX + offsetX, this.pixelPos.offsetY + offsetY);
+
+    this.context.save();
+    this.context.fillStyle = "#777";
+    this.context.beginPath();
+    const dotSize = 1.3;
+    const gridSize = 200;
+    const maxWidth = Math.round(this.canvas.width / 2 / gridSize) * gridSize;
+    const maxHeight = Math.round(this.canvas.height / 2 / gridSize) * gridSize;
+    for (let x = -maxWidth; x <= maxWidth; x += gridSize) {
+      for (let y = -maxHeight; y <= maxHeight; y += gridSize) {
+        this.context.moveTo(x, y);
+        let size = dotSize;
+        if (x % 1000 == 0 && y % 1000 == 0) {
+          size = 2;
+        }
+        this.context.ellipse(x, y, size, size, 0, 0, 360);   
+      }
+    }
+    this.context.closePath();
+    this.context.fill();
+    this.context.restore();
+
+    // for (let obj of objects) {
+    //   switch (obj.type) {
+    //     case "rect":
+    //       context.fillRect(obj.x, obj.y, obj.width, obj.height);
+    //       break;
+    //     default:
+    //       console.error("unknown object type", obj.type);
+    //   }
+    // }
+
+    this.context.restore();
+
+    let text = `${this.worldPos.x},${this.worldPos.y} ${ev.offsetX},${ev.offsetY}`;
+    let textSize = this.context.measureText(text);
+    this.context.fillText(text, this.canvas.width - textSize.width, this.canvas.height - textSize.actualBoundingBoxAscent);    
   }
-
-  context.restore();
-
-  let text = `${worldPos.x},${worldPos.y} ${ev.offsetX},${ev.offsetY}`;
-  let textSize = context.measureText(text);
-  context.fillText(text, canvas.width - textSize.width, canvas.height - textSize.actualBoundingBoxAscent);
 }
-
-canvas.addEventListener("pointermove", (ev) => {
-  draw(ev);
-});
-
-canvas.addEventListener("pointerdown", (ev) => {
-  if (ev.pointerType == "mouse" && ev.button != 0) {
-    return;
-  }
-
-  lastEv = ev;
-});
-
-canvas.addEventListener("pointerup", (ev) => {
-  if (!lastEv) {
-    return;
-  }
-
-  pixelPos.offsetX += lastEv.offsetX - ev.offsetX;
-  pixelPos.offsetY += lastEv.offsetY - ev.offsetY;
-
-  lastEv = null;
-});
-
-canvas.addEventListener("pointerleave", (ev) => {
-  if (!lastEv) {
-    return;
-  }
-
-  pixelPos.offsetX += lastEv.offsetX - ev.offsetX;
-  pixelPos.offsetY += lastEv.offsetY - ev.offsetY;
-
-  lastEv = null;
-
-  draw(ev);
-});
