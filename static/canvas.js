@@ -140,6 +140,8 @@ class Canvas {
         case "move":
           self.moveBy(ev.offsetX, ev.offsetY);
           break;
+        case null:
+          break;
         default:
           console.error(`unknown action ${self.action}`);
       }
@@ -153,11 +155,18 @@ class Canvas {
       return;
     }
 
-    this.pixelPos.offsetX -= this.lastEv.offsetX - x;
-    this.pixelPos.offsetY -= this.lastEv.offsetY - y;
+    let offsetX = this.lastEv.offsetX;
+    let offsetY = this.lastEv.offsetY;
+    if (!offsetX || !offsetY) {
+      offsetX = this.lastEv.touches[0].clientX;
+      offsetY = this.lastEv.touches[0].clientY;
+    }
 
-    this.worldPos.x -= this.lastEv.offsetX - x;
-    this.worldPos.y -= this.lastEv.offsetY - y;
+    this.pixelPos.offsetX -= offsetX - x;
+    this.pixelPos.offsetY -= offsetY - y;
+
+    this.worldPos.x -= offsetX - x;
+    this.worldPos.y -= offsetY - y;
 
     this.action = null;
     this.lastEv = null;
@@ -178,6 +187,10 @@ class Canvas {
     if (this.lastEv && this.action == "move") {
       offsetX = this.lastEv.offsetX - ev.offsetX;
       offsetY = this.lastEv.offsetY - ev.offsetY;
+      if (!this.lastEv.offsetX || !this.lastEv.offsetY) {
+        offsetX = this.lastEv.touches[0].clientX - ev.offsetX;
+        offsetY = this.lastEv.touches[0].clientY - ev.offsetY;
+      }
     }
 
     this.context.save();
