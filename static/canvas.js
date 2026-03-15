@@ -1,8 +1,10 @@
 let canvas = document.getElementById("canvas");
 
-let rect = canvas.getBoundingClientRect();
-canvas.width = rect.width;
-canvas.height = rect.height;
+// let rect = canvas.getBoundingClientRect();
+// canvas.width = rect.width;
+// canvas.height = rect.height;
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
 
 let context = canvas.getContext("2d");
 
@@ -29,7 +31,27 @@ function draw(ev) {
 
   context.save();
   context.translate(pixelPos.offsetX + offsetX, pixelPos.offsetY + offsetY);
-  context.fillRect(0, 0, 1, 1);
+
+  context.save();
+  context.fillStyle = "#777";
+  context.beginPath();
+  const dotSize = 1.3;
+  const gridSize = 200;
+  const maxWidth = Math.round(canvas.width / 2 / gridSize) * gridSize;
+  const maxHeight = Math.round(canvas.height / 2 / gridSize) * gridSize;
+  for (let x = -maxWidth; x <= maxWidth; x += gridSize) {
+    for (let y = -maxHeight; y <= maxHeight; y += gridSize) {
+      context.moveTo(x, y);
+      let size = dotSize;
+      if (x % 1000 == 0 && y % 1000 == 0) {
+        size = 2;
+      }
+      context.ellipse(x, y, size, size, 0, 0, 360);   
+    }
+  }
+  context.closePath();
+  context.fill();
+  context.restore();
 
   for (let obj of objects) {
     switch (obj.type) {
