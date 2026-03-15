@@ -52,11 +52,11 @@ class Canvas {
       return;
     }
 
-    this.pixelPos.offsetX += this.lastEv.offsetX - x;
-    this.pixelPos.offsetY += this.lastEv.offsetY - y;
+    this.pixelPos.offsetX -= this.lastEv.offsetX - x;
+    this.pixelPos.offsetY -= this.lastEv.offsetY - y;
 
-    this.worldPos.x += this.lastEv.offsetX - x;
-    this.worldPos.y += this.lastEv.offsetY - y;
+    this.worldPos.x -= this.lastEv.offsetX - x;
+    this.worldPos.y -= this.lastEv.offsetY - y;
 
     this.lastEv = null;
   }
@@ -79,7 +79,7 @@ class Canvas {
     }
 
     this.context.save();
-    this.context.translate(this.pixelPos.offsetX + offsetX, this.pixelPos.offsetY + offsetY);
+    this.context.translate(this.pixelPos.offsetX - offsetX, this.pixelPos.offsetY - offsetY);
 
     this.context.save();
     this.context.fillStyle = "#777";
