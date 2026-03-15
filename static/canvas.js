@@ -29,7 +29,7 @@ class Canvas {
     this.canvas.addEventListener("pointermove", (ev) => { self.draw(ev) });
 
     this.canvas.addEventListener("pointerdown", (ev) => {
-      if (ev.pointerType == "mouse" && ev.button != 0) {
+      if (ev.pointerType == "mouse" && ev.button != 1) {
         return;
       }
 
