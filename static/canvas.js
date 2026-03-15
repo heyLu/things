@@ -1,7 +1,6 @@
 class Canvas {
   constructor(canvas, window = null) {
     this.canvas = canvas;
-
     if (window) {
       this.canvas.width = window.innerWidth;
       this.canvas.height = window.innerHeight;
@@ -10,9 +9,11 @@ class Canvas {
       this.canvas.width = rect.width;
       this.canvas.height = rect.height;
     }
-
     this.context = canvas.getContext('2d');
+
+    this.action = null;
     this.lastEv = null;
+    this.path = null;
 
     this.worldPos = {x: 0, y: 0};
     this.pixelPos = {
@@ -20,28 +21,65 @@ class Canvas {
       offsetY: this.canvas.height / 2,
     };
 
+    this.objects = [];
+
     this.setupEvents();
   }
 
   setupEvents() {
     let self = this;
 
-    this.canvas.addEventListener("pointermove", (ev) => { self.draw(ev) });
+    this.canvas.addEventListener("pointermove", (ev) => {
+      if (self.action == "draw") {
+        let pos = this.pixelToWorld(ev.offsetX, ev.offsetY);
+        self.path.lineTo(pos.x, pos.y);
+      }
+
+      self.draw(ev);
+    });
 
     this.canvas.addEventListener("pointerdown", (ev) => {
-      if (ev.pointerType == "mouse" && ev.button != 1) {
+      let action = null;
+      if (ev.pointerType == "mouse" && ev.button == 1) {
+        action = "move";
+      } else if (ev.pointerType == "mouse" && ev.button == 0) {
+        action = "draw";
+        self.path = new Path2D();
+      }
+
+      if (action == null) {
         return;
       }
 
+      self.action = action;
       self.lastEv = ev;
     });
 
     this.canvas.addEventListener("pointerup", (ev) => {
-      self.moveBy(ev.offsetX, ev.offsetY);
+      switch (self.action) {
+        case "move":
+          self.moveBy(ev.offsetX, ev.offsetY);
+          break;
+        case "draw":
+          self.objects.push({type: "path", path: self.path});
+          self.path = null;
+          self.action = null;
+          self.lastEv = null;
+        case null:
+          break;
+        default:
+          console.error(`unknown action ${self.action}`);
+      }
     });
 
     this.canvas.addEventListener("pointerleave", (ev) => {
-      self.moveBy(ev.offsetX, ev.offsetY);
+      switch (self.action) {
+        case "move":
+          self.moveBy(ev.offsetX, ev.offsetY);
+          break;
+        default:
+          console.error(`unknown action ${self.action}`);
+      }
 
       self.draw(ev);
     });
@@ -58,6 +96,7 @@ class Canvas {
     this.worldPos.x -= this.lastEv.offsetX - x;
     this.worldPos.y -= this.lastEv.offsetY - y;
 
+    this.action = null;
     this.lastEv = null;
   }
 
@@ -73,7 +112,7 @@ class Canvas {
 
     let offsetX = 0;
     let offsetY = 0;
-    if (this.lastEv) {
+    if (this.lastEv && this.action == "move") {
       offsetX = this.lastEv.offsetX - ev.offsetX;
       offsetY = this.lastEv.offsetY - ev.offsetY;
     }
@@ -102,15 +141,22 @@ class Canvas {
     this.context.fill();
     this.context.restore();
 
-    // for (let obj of objects) {
-    //   switch (obj.type) {
-    //     case "rect":
-    //       context.fillRect(obj.x, obj.y, obj.width, obj.height);
-    //       break;
-    //     default:
-    //       console.error("unknown object type", obj.type);
-    //   }
-    // }
+    for (let obj of this.objects) {
+      switch (obj.type) {
+        case "rect":
+          this.context.fillRect(obj.x, obj.y, obj.width, obj.height);
+          break;
+        case "path":
+          this.context.stroke(obj.path);
+          break;
+        default:
+          console.error("unknown object type", obj.type);
+      }
+    }
+
+    if (this.action == "draw") {
+      this.context.stroke(this.path);
+    }
 
     this.context.restore();
 
