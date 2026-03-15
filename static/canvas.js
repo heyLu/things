@@ -37,28 +37,35 @@ class Canvas {
     });
 
     this.canvas.addEventListener("pointerup", (ev) => {
-      if (!self.lastEv) {
-        return;
-      }
-
-      self.pixelPos.offsetX += self.lastEv.offsetX - ev.offsetX;
-      self.pixelPos.offsetY += self.lastEv.offsetY - ev.offsetY;
-
-      self.lastEv = null;
+      self.moveBy(ev.offsetX, ev.offsetY);
     });
 
     this.canvas.addEventListener("pointerleave", (ev) => {
-      if (!self.lastEv) {
-        return;
-      }
-
-      self.pixelPos.offsetX += self.lastEv.offsetX - ev.offsetX;
-      self.pixelPos.offsetY += self.lastEv.offsetY - ev.offsetY;
-
-      self.lastEv = null;
+      self.moveBy(ev.offsetX, ev.offsetY);
 
       self.draw(ev);
     });
+  }
+
+  moveBy(x, y) {
+    if (!this.lastEv) {
+      return;
+    }
+
+    this.pixelPos.offsetX += this.lastEv.offsetX - x;
+    this.pixelPos.offsetY += this.lastEv.offsetY - y;
+
+    this.worldPos.x += this.lastEv.offsetX - x;
+    this.worldPos.y += this.lastEv.offsetY - y;
+
+    this.lastEv = null;
+  }
+
+  pixelToWorld(x, y) {
+    return {
+      x: x - this.pixelPos.offsetX,
+      y: y - this.pixelPos.offsetY,
+    };
   }
 
   draw(ev = {offsetX: 0, offsetY: 0}) {
@@ -107,7 +114,8 @@ class Canvas {
 
     this.context.restore();
 
-    let text = `${this.worldPos.x},${this.worldPos.y} ${ev.offsetX},${ev.offsetY}`;
+    let world = this.pixelToWorld(ev.offsetX, ev.offsetY);
+    let text = `${world.x},${world.y}`;
     let textSize = this.context.measureText(text);
     this.context.fillText(text, this.canvas.width - textSize.width, this.canvas.height - textSize.actualBoundingBoxAscent);    
   }
