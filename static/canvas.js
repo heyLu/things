@@ -22,6 +22,12 @@ class SVGPath2D extends Path2D{
 class Canvas {
   constructor(canvas, window = null) {
     this.canvas = canvas;
+
+    this.drawMode = document.createElement("input");
+    this.drawMode.type = "checkbox";
+    this.drawMode.style = "position: fixed; top: 0; right: 0;";
+    this.canvas.parentElement.appendChild(this.drawMode);
+
     if (window) {
       this.canvas.width = window.innerWidth;
       this.canvas.height = window.innerHeight;
@@ -73,11 +79,32 @@ class Canvas {
 
     this.canvas.addEventListener("pointerdown", (ev) => {
       let action = null;
-      if (ev.pointerType == "mouse" && ev.button == 1) {
-        action = "move";
-      } else if (ev.pointerType == "mouse" && ev.button == 0) {
+      switch (ev.pointerType) {
+        case "mouse":
+          if (ev.button == 1) {
+            action = "move";
+          } else if (ev.button == 0) {
+            action = "draw";
+            self.path = new SVGPath2D();
+          }
+          break;
+      }
+
+      if (action == null) {
+        return;
+      }
+
+      self.action = action;
+      self.lastEv = ev;
+    });
+    this.canvas.addEventListener("touchstart", (ev) => {
+      let action = null;
+      if (ev.touches.length == 1 && !self.drawMode.checked) {
         action = "draw";
         self.path = new SVGPath2D();
+      } else if (ev.touches.length == 2 || self.drawMode.checked) {
+        action = "move";
+        // FIXME: get diff from touches ...
       }
 
       if (action == null) {
