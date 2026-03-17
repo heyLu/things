@@ -1,9 +1,10 @@
 class SVGPath2D extends Path2D{
-  constructor(x, y, parts = []) {
+  constructor(x, y, scale, parts = []) {
     super(parts.join(' '));
 
     this.x = x;
     this.y = y;
+    this.scale = scale;
     this.parts = parts;
   }
 
@@ -44,6 +45,7 @@ class Canvas {
       offsetX: this.canvas.width / 2,
       offsetY: this.canvas.height / 2,
     };
+    this.scale = 1;
 
     this.objects = [];
     this.redoObjects = [];
@@ -52,7 +54,7 @@ class Canvas {
       for (let obj of oldObjects) {
         switch (obj.type) {
           case "path":
-            this.objects.push({type: "path", path: new SVGPath2D(obj.x, obj.y, obj.path.parts)});
+            this.objects.push({type: "path", path: new SVGPath2D(obj.path.x, obj.path.y, obj.path.scale || 1, obj.path.parts)});
             break;
           default:
             this.objects.push(obj);
@@ -72,7 +74,9 @@ class Canvas {
     this.redo.disabled = "disabled";
     this.redo.textContent = "redo";
 
-    for (let el of [this.undo, this.redo, this.drawMode]) {
+    this.steps = document.createElement("details");
+
+    for (let el of [this.undo, this.redo, this.drawMode, this.steps]) {
       this.controls.appendChild(el);
     }
 
@@ -100,7 +104,7 @@ class Canvas {
           } else if (ev.button == 0) {
             action = "draw";
             let pos = this.pixelToWorld(ev.offsetX, ev.offsetY);
-            self.path = new SVGPath2D(pos.x, pos.y);
+            self.path = new SVGPath2D(pos.x, pos.y, self.scale);
           }
           break;
       }
@@ -112,13 +116,14 @@ class Canvas {
       self.action = action;
       self.lastEv = ev;
     });
+
     this.canvas.addEventListener("touchstart", (ev) => {
       ev.preventDefault();
 
       let action = null;
       if (ev.touches.length == 1 && !self.drawMode.checked) {
         action = "draw";
-        self.path = new SVGPath2D(ev.touches[0].clientX, ev.touches[1].clientY);
+        self.path = new SVGPath2D(ev.touches[0].clientX, ev.touches[1].clientY, self.scale);
       } else if (ev.touches.length == 2 || self.drawMode.checked) {
         action = "move";
         // FIXME: get diff from touches ...
@@ -169,6 +174,12 @@ class Canvas {
           console.error(`unknown action ${self.action}`);
       }
 
+      self.draw(ev);
+    });
+
+    this.canvas.addEventListener("wheel", (ev) => {
+      self.scale += 0.05 * -Math.sign(ev.deltaY);
+      self.scale = Math.max(0.05, self.scale);
       self.draw(ev);
     });
 
@@ -228,8 +239,8 @@ class Canvas {
 
   pixelToWorld(x, y) {
     return {
-      x: x - this.pixelPos.offsetX,
-      y: y - this.pixelPos.offsetY,
+      x: (x - this.pixelPos.offsetX)/this.scale,
+      y: (y - this.pixelPos.offsetY)/this.scale,
     };
   }
 
@@ -249,6 +260,8 @@ class Canvas {
 
     this.context.save();
     this.context.translate(this.pixelPos.offsetX - offsetX, this.pixelPos.offsetY - offsetY);
+
+    this.context.scale(this.scale, this.scale);
 
     this.context.save();
     this.context.fillStyle = "#777";
@@ -277,7 +290,10 @@ class Canvas {
           this.context.fillRect(obj.x, obj.y, obj.width, obj.height);
           break;
         case "path":
+          this.context.save();
+          this.context.lineWidth = 1 / obj.path.scale;
           this.context.stroke(obj.path);
+          this.context.restore();
           break;
         default:
           console.error("unknown object type", obj.type);
@@ -285,7 +301,10 @@ class Canvas {
     }
 
     if (this.action == "draw") {
+      this.context.save();
+      this.context.lineWidth = 1 / this.path.scale;
       this.context.stroke(this.path);
+      this.context.restore();
     }
 
     this.context.restore();
