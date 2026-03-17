@@ -133,14 +133,17 @@ class Canvas {
           self.moveBy(ev.offsetX, ev.offsetY);
           break;
         case "draw":
-          self.objects.push({type: "path", path: self.path});
-          self.undo.disabled = "";
+          if (self.path.parts.length > 0) {
+            self.objects.push({type: "path", path: self.path});
+            self.undo.disabled = "";
 
-          localStorage.setItem("objects", JSON.stringify(self.objects));
+            localStorage.setItem("objects", JSON.stringify(self.objects));
+          }
 
           self.path = null;
           self.action = null;
           self.lastEv = null;
+          break;
         case null:
           break;
         default:
