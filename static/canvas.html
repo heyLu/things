@@ -11,12 +11,15 @@
 
 <body style="margin: 0; overflow: hidden;">
   <main>
-    <canvas id="canvas"></canvas>
+    <div>
+      <span id="controls" style="position: fixed; top: 0; right: 0"></span>
+      <canvas id="canvas"></canvas>
+    </div>
   </main>
 
   <script src="/static/canvas.js"></script>
   <script>
-    let canvas = new Canvas(document.getElementById("canvas"), window);
+    let canvas = new Canvas(document.getElementById("canvas"), document.getElementById("controls"), window);
     canvas.draw();
   </script>
 </body>

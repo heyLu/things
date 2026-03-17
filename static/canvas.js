@@ -20,13 +20,8 @@ class SVGPath2D extends Path2D{
 }
 
 class Canvas {
-  constructor(canvas, window = null) {
+  constructor(canvas, controls, window = null) {
     this.canvas = canvas;
-
-    this.drawMode = document.createElement("input");
-    this.drawMode.type = "checkbox";
-    this.drawMode.style = "position: fixed; top: 0; right: 0;";
-    this.canvas.parentElement.appendChild(this.drawMode);
 
     if (window) {
       this.canvas.width = window.innerWidth;
@@ -49,6 +44,7 @@ class Canvas {
     };
 
     this.objects = [];
+    this.redoObjects = [];
     if (localStorage.hasOwnProperty("objects")) {
       let oldObjects = JSON.parse(localStorage.getItem("objects"));
       for (let obj of oldObjects) {
@@ -60,6 +56,22 @@ class Canvas {
             this.objects.push(obj);
         }
       }
+    }
+
+    this.controls = controls;
+
+    this.drawMode = document.createElement("input");
+    this.drawMode.type = "checkbox";
+
+    this.undo = document.createElement("button")
+    this.undo.disabled = this.objects.length == 0 ? "disabled" : "";
+    this.undo.textContent = "undo";
+    this.redo = document.createElement("button")
+    this.redo.disabled = "disabled";
+    this.redo.textContent = "redo";
+
+    for (let el of [this.undo, this.redo, this.drawMode]) {
+      this.controls.appendChild(el);
     }
 
     this.setupEvents();
@@ -122,6 +134,7 @@ class Canvas {
           break;
         case "draw":
           self.objects.push({type: "path", path: self.path});
+          self.undo.disabled = "";
 
           localStorage.setItem("objects", JSON.stringify(self.objects));
 
@@ -148,6 +161,37 @@ class Canvas {
 
       self.draw(ev);
     });
+
+    this.undo.addEventListener("click", (_) => {
+      let undone = self.objects.pop();
+      if (undone) {
+        self.redoObjects.push(undone);
+        self.redo.disabled = "";
+
+        localStorage.setItem("objects", JSON.stringify(self.objects));
+      }
+
+      if (self.objects.length == 0) {
+        self.undo.disabled = "disabled";
+      }
+
+      self.draw();
+    });
+
+    this.redo.addEventListener("click", (_) => {
+      let redone = self.redoObjects.pop();
+      if (redone) {
+        self.objects.push(redone);
+        self.undo.disabled = "";
+        localStorage.setItem("objects", JSON.stringify(self.objects));
+      }
+
+      if (self.redoObjects.length == 0) {
+        self.redo.disabled = "disabled";
+      }
+
+      self.draw();
+    })
   }
 
   moveBy(x, y) {
