@@ -110,6 +110,8 @@ class Canvas {
       self.lastEv = ev;
     });
     this.canvas.addEventListener("touchstart", (ev) => {
+      ev.preventDefault();
+
       let action = null;
       if (ev.touches.length == 1 && !self.drawMode.checked) {
         action = "draw";
