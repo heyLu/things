@@ -1,7 +1,9 @@
 class SVGPath2D extends Path2D{
-  constructor(parts = []) {
+  constructor(x, y, parts = []) {
     super(parts.join(' '));
 
+    this.x = x;
+    this.y = y;
     this.parts = parts;
   }
 
@@ -50,7 +52,7 @@ class Canvas {
       for (let obj of oldObjects) {
         switch (obj.type) {
           case "path":
-            this.objects.push({type: "path", path: new SVGPath2D(obj.path.parts)});
+            this.objects.push({type: "path", path: new SVGPath2D(obj.x, obj.y, obj.path.parts)});
             break;
           default:
             this.objects.push(obj);
@@ -97,7 +99,8 @@ class Canvas {
             action = "move";
           } else if (ev.button == 0) {
             action = "draw";
-            self.path = new SVGPath2D();
+            let pos = this.pixelToWorld(ev.offsetX, ev.offsetY);
+            self.path = new SVGPath2D(pos.x, pos.y);
           }
           break;
       }
@@ -115,7 +118,7 @@ class Canvas {
       let action = null;
       if (ev.touches.length == 1 && !self.drawMode.checked) {
         action = "draw";
-        self.path = new SVGPath2D();
+        self.path = new SVGPath2D(ev.touches[0].clientX, ev.touches[1].clientY);
       } else if (ev.touches.length == 2 || self.drawMode.checked) {
         action = "move";
         // FIXME: get diff from touches ...
@@ -135,12 +138,14 @@ class Canvas {
           self.moveBy(ev.offsetX, ev.offsetY);
           break;
         case "draw":
-          if (self.path.parts.length > 0) {
+          if (self.path.parts.length == 0) {
+              self.objects.push({type: "rect", x: self.path.x, y: self.path.y, width: 1, height: 1});
+          } else {
             self.objects.push({type: "path", path: self.path});
-            self.undo.disabled = "";
-
-            localStorage.setItem("objects", JSON.stringify(self.objects));
           }
+          self.undo.disabled = "";
+
+          localStorage.setItem("objects", JSON.stringify(self.objects));
 
           self.path = null;
           self.action = null;
