@@ -123,7 +123,7 @@ class Canvas {
       let action = null;
       if (ev.touches.length == 1 && !self.drawMode.checked) {
         action = "draw";
-        self.path = new SVGPath2D(ev.touches[0].clientX, ev.touches[1].clientY, self.scale);
+        self.path = new SVGPath2D(ev.touches[0].clientX, ev.touches[0].clientY, self.scale);
       } else if (ev.touches.length == 2 || self.drawMode.checked) {
         action = "move";
         // FIXME: get diff from touches ...
