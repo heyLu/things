@@ -178,8 +178,7 @@ class Canvas {
     });
 
     this.canvas.addEventListener("wheel", (ev) => {
-      self.scale += 0.05 * -Math.sign(ev.deltaY);
-      self.scale = Math.max(0.05, self.scale);
+      self.scale *= (ev.deltaY > 0) ? 0.9 : 1.1;
       self.draw(ev);
     });
 
