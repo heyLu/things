@@ -92,7 +92,7 @@ class Canvas {
         self.path.lineTo(pos.x, pos.y);
       }
 
-      self.draw(ev);
+      window.requestAnimationFrame(() => self.draw(ev));
     });
 
     this.canvas.addEventListener("pointerdown", (ev) => {
@@ -174,12 +174,12 @@ class Canvas {
           console.error(`unknown action ${self.action}`);
       }
 
-      self.draw(ev);
+      window.requestAnimationFrame(() => self.draw(ev));
     });
 
     this.canvas.addEventListener("wheel", (ev) => {
       self.scale *= (ev.deltaY > 0) ? 0.9 : 1.1;
-      self.draw(ev);
+      window.requestAnimationFrame(() => self.draw(ev));
     });
 
     this.undo.addEventListener("click", (_) => {
@@ -195,7 +195,7 @@ class Canvas {
         self.undo.disabled = "disabled";
       }
 
-      self.draw();
+      window.requestAnimationFrame(() => self.draw());
     });
 
     this.redo.addEventListener("click", (_) => {
@@ -210,7 +210,7 @@ class Canvas {
         self.redo.disabled = "disabled";
       }
 
-      self.draw();
+      window.requestAnimationFrame(() => self.draw());
     })
   }
 
