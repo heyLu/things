@@ -67,6 +67,9 @@ class Canvas {
 
     this.controls = controls;
 
+    this.debugInfo = document.createElement("span");
+    this.debugInfo.style = "font-family: monospace; font-size: smaller;";
+
     this.drawMode = document.createElement("input");
     this.drawMode.type = "checkbox";
 
@@ -79,8 +82,9 @@ class Canvas {
 
     this.steps = document.createElement("details");
 
-    for (let el of [this.undo, this.redo, this.drawMode, this.steps]) {
+    for (let el of [this.debugInfo, this.undo, this.redo, this.drawMode, this.steps]) {
       this.controls.appendChild(el);
+      this.controls.appendChild(document.createTextNode(" "));
     }
 
     this.setupEvents();
@@ -111,6 +115,7 @@ class Canvas {
         );
 
         if (this.prevDiff > 0) {
+          this.debugInfo.textContent = curDiff;
           if (curDiff > this.prevDiff) { // increase = zoom in
             factor = 1.1;
           }
@@ -163,11 +168,10 @@ class Canvas {
       if (ev.touches.length == 1 && !self.drawMode.checked) {
         action = "draw";
         self.path = new SVGPath2D(ev.touches[0].clientX, ev.touches[0].clientY, self.scale);
+      } else if (ev.touches.length == 2 || self.drawMode.checked) {
+        action = "move";
+        // FIXME: get diff from touches ...
       }
-      // } else if (ev.touches.length == 2 || self.drawMode.checked) {
-      //   action = "move";
-      //   // FIXME: get diff from touches ...
-      // }
 
       if (action == null) {
         return;
@@ -227,6 +231,9 @@ class Canvas {
     });
 
     this.canvas.addEventListener("wheel", (ev) => {
+      ev.preventDefault();
+
+      self.debugInfo.textContent = `${ev.ctrlKey}`;
       factor = (ev.deltaY > 0) ? 0.9 : 1.1;
       scheduleScale();
     });
