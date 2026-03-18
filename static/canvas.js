@@ -80,9 +80,12 @@ class Canvas {
     this.redo.disabled = "disabled";
     this.redo.textContent = "redo";
 
+    this.fullscreen = document.createElement("button")
+    this.fullscreen.textContent = "⛶";
+
     this.steps = document.createElement("details");
 
-    for (let el of [this.debugInfo, this.undo, this.redo, this.drawMode, this.steps]) {
+    for (let el of [this.debugInfo, this.undo, this.redo, this.drawMode, this.fullscreen, this.steps]) {
       this.controls.appendChild(el);
       this.controls.appendChild(document.createTextNode(" "));
     }
@@ -267,7 +270,26 @@ class Canvas {
       }
 
       window.requestAnimationFrame(() => self.draw());
-    })
+    });
+
+    this.fullscreen.addEventListener("click", (_) => {
+      if (document.fullscreenElement) {
+        document.exitFullscreen();
+        return;
+      }
+
+      self.canvas.parentElement.requestFullscreen().catch((err) => {
+        console.error(`Error enabling fullscreen: ${err.message}`);
+      });
+    });
+
+    window.addEventListener("resize", () => self.resize());
+  }
+
+  resize() {
+    this.canvas.width = window.innerWidth;
+    this.canvas.height = window.innerHeight;
+    window.requestAnimationFrame(() => this.draw());
   }
 
   moveBy(x, y) {
