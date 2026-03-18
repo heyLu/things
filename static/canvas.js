@@ -40,6 +40,9 @@ class Canvas {
     this.lastEv = null;
     this.path = null;
 
+    this.evCache = [];
+    this.prevDiff = -1;
+
     this.worldPos = {x: 0, y: 0};
     this.pixelPos = {
       offsetX: this.canvas.width / 2,
@@ -86,7 +89,41 @@ class Canvas {
   setupEvents() {
     let self = this;
 
+    let factor = 1.0;
+    let scheduleScale = debounce(() => {
+      self.scale *= factor;
+      window.requestAnimationFrame(() => self.draw());
+    }, 7);
     this.canvas.addEventListener("pointermove", (ev) => {
+      const index = this.evCache.findIndex(
+        (cachedEv) => cachedEv.pointerId === ev.pointerId,
+      );
+      this.evCache[index] = ev;
+
+      // If two pointers are down, check for pinch gestures
+      if (this.evCache.length === 2) {
+        this.action = null;
+
+        // Calculate the distance between the two pointers
+        const curDiff = Math.hypot(
+          this.evCache[0].clientX - this.evCache[1].clientX,
+          this.evCache[0].clientY - this.evCache[1].clientY,
+        );
+
+        if (this.prevDiff > 0) {
+          if (curDiff > this.prevDiff) { // increase = zoom in
+            factor = 1.1;
+          }
+          if (curDiff < this.prevDiff) {
+            factor = 0.9;
+          }
+          scheduleScale();
+        }
+
+        // Cache the distance for the next move event
+        this.prevDiff = curDiff;
+      }
+
       if (self.action == "draw") {
         let pos = this.pixelToWorld(ev.offsetX, ev.offsetY);
         self.path.lineTo(pos.x, pos.y);
@@ -96,6 +133,8 @@ class Canvas {
     });
 
     this.canvas.addEventListener("pointerdown", (ev) => {
+      self.evCache.push(ev);
+
       let action = null;
       switch (ev.pointerType) {
         case "mouse":
@@ -124,10 +163,11 @@ class Canvas {
       if (ev.touches.length == 1 && !self.drawMode.checked) {
         action = "draw";
         self.path = new SVGPath2D(ev.touches[0].clientX, ev.touches[0].clientY, self.scale);
-      } else if (ev.touches.length == 2 || self.drawMode.checked) {
-        action = "move";
-        // FIXME: get diff from touches ...
       }
+      // } else if (ev.touches.length == 2 || self.drawMode.checked) {
+      //   action = "move";
+      //   // FIXME: get diff from touches ...
+      // }
 
       if (action == null) {
         return;
@@ -138,6 +178,15 @@ class Canvas {
     });
 
     this.canvas.addEventListener("pointerup", (ev) => {
+      const index = self.evCache.findIndex(
+        (cachedEv) => cachedEv.pointerId === ev.pointerId,
+      );
+      self.evCache.splice(index, 1);
+
+      if (self.evCache.length < 2) {
+        self.prevDiff = -1;
+      }
+
       switch (self.action) {
         case "move":
           self.moveBy(ev.offsetX, ev.offsetY);
@@ -178,8 +227,8 @@ class Canvas {
     });
 
     this.canvas.addEventListener("wheel", (ev) => {
-      self.scale *= (ev.deltaY > 0) ? 0.9 : 1.1;
-      window.requestAnimationFrame(() => self.draw(ev));
+      factor = (ev.deltaY > 0) ? 0.9 : 1.1;
+      scheduleScale();
     });
 
     this.undo.addEventListener("click", (_) => {
@@ -309,8 +358,16 @@ class Canvas {
     this.context.restore();
 
     let world = this.pixelToWorld(ev.offsetX, ev.offsetY);
-    let text = `${world.x},${world.y}`;
+    let text = `${Intl.NumberFormat().format(world.x)},${Intl.NumberFormat().format(world.y)}`;
     let textSize = this.context.measureText(text);
     this.context.fillText(text, this.canvas.width - textSize.width, this.canvas.height - textSize.actualBoundingBoxAscent);    
   }
+}
+
+function debounce(func, timeout = 300){
+  let timer;
+  return (...args) => {
+    clearTimeout(timer);
+    timer = setTimeout(() => { func.apply(this, args); }, timeout);
+  };
 }
