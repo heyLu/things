@@ -149,7 +149,9 @@ class Canvas {
         self.path.lineTo(pos.x, pos.y);
       }
 
-      window.requestAnimationFrame(() => self.draw(ev));
+      if (self.action) {
+        window.requestAnimationFrame(() => self.draw(ev));
+      }
     });
 
     this.canvas.addEventListener("pointerdown", (ev) => {
