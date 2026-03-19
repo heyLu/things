@@ -59,6 +59,17 @@ class Canvas {
           case "path":
             this.objects.push({type: "path", path: new SVGPath2D(obj.path.x, obj.path.y, obj.path.scale || 1, obj.path.parts)});
             break;
+          case "image":
+            if (!obj.image_source) {
+              continue;
+            }
+            obj.image = document.createElement("img");
+            obj.image.src = obj.image_source;
+            obj.image.addEventListener("load", () => {
+              window.requestAnimationFrame(() => this.draw());
+            });
+            this.objects.push(obj);
+            break
           default:
             this.objects.push(obj);
         }
@@ -101,6 +112,7 @@ class Canvas {
       self.scale *= factor;
       window.requestAnimationFrame(() => self.draw());
     }, 7);
+
     this.canvas.addEventListener("pointermove", (ev) => {
       const index = this.evCache.findIndex(
         (cachedEv) => cachedEv.pointerId === ev.pointerId,
@@ -241,6 +253,55 @@ class Canvas {
       scheduleScale();
     });
 
+    this.canvas.addEventListener("drop", async (ev) => {
+      ev.preventDefault();
+      console.log(ev);
+
+      let added = false;
+      for (let item of ev.dataTransfer.items) {
+        if (item.type == "text/uri-list") {
+          item.getAsString((data) => {
+            let image = document.createElement("img")
+            image.src = data;
+            let pos = this.pixelToWorld(ev.offsetX, ev.offsetY);
+            self.objects.push({type: "image", x: pos.x, y: pos.y, image: image, image_source: data});
+            added = true;
+            window.requestAnimationFrame(() => self.draw());
+          });
+        }
+        try {
+          let file = item.getAsFile();
+          let image = await window.createImageBitmap(file);
+          let pos = this.pixelToWorld(ev.offsetX, ev.offsetY);
+          self.objects.push({type: "image", x: pos.x, y: pos.y, image: image});
+          added = true;
+          window.requestAnimationFrame(() => self.draw());
+        } catch(err) {
+          console.error(err)
+        }
+      }
+      if (added) {
+        localStorage.setItem("objects", JSON.stringify(self.objects));
+      }
+    });
+
+    this.canvas.addEventListener("dragover", (ev) => {
+      ev.preventDefault();
+      ev.dataTransfer.dropEffect = "copy";
+      // const fileItems = [...ev.dataTransfer.items].filter(
+      //   (item) => item.kind === "file",
+      // );
+      // if (fileItems.length > 0) {
+      //   ev.preventDefault();
+      //   if (fileItems.some((item) => item.type.startsWith("image/"))) {
+      //     ev.dataTransfer.dropEffect = "copy";
+      //   } else {
+      //     ev.dataTransfer.dropEffect = "none";
+      //   }
+      // }
+    });
+    
+
     this.undo.addEventListener("click", (_) => {
       let undone = self.objects.pop();
       if (undone) {
@@ -371,6 +432,9 @@ class Canvas {
           this.context.lineWidth = 1 / obj.path.scale;
           this.context.stroke(obj.path);
           this.context.restore();
+          break;
+        case "image":
+          this.context.drawImage(obj.image, obj.x, obj.y);
           break;
         default:
           console.error("unknown object type", obj.type);
