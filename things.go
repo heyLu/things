@@ -87,7 +87,7 @@ func main() {
 		// check if {kind} param is a valid kind, render a namespace index if not, e.g. to serve /fun-stuff as fun-stuff namespace
 		kind := chi.URLParam(req, "kind")
 		if _, ok := things.kinds[kind]; kind != "" && !ok {
-			things.HandleIndex(w, req.WithContext(context.WithValue(req.Context(), NamespaceKey, kind)))
+			things.HandleList(w, req.WithContext(context.WithValue(req.Context(), NamespaceKey, kind)))
 			return
 		}
 
@@ -110,10 +110,6 @@ type Things struct {
 type Handler func(ctx context.Context, storage storage.Storage, namespace string, w http.ResponseWriter, input string, save bool) error
 
 var ErrNotHandled = errors.New("not handled")
-
-func (t *Things) HandleIndex(w http.ResponseWriter, req *http.Request) {
-	pageWithContent(w, req, "", nil)
-}
 
 func pageWithContent(w http.ResponseWriter, req *http.Request, input string, content handler.Renderer) {
 	namespace := req.Context().Value(NamespaceKey).(string)
@@ -302,19 +298,20 @@ func (t *Things) handle(ctx context.Context, hndl handler.Handler, storage stora
 }
 
 func (t *Things) HandleList(w http.ResponseWriter, req *http.Request) {
+	namespace := req.Context().Value(NamespaceKey).(string)
 	kindParam := chi.URLParam(req, "kind")
+
+	if kindParam == namespace {
+		kindParam = ""
+	}
+
 	kind, hndl := t.handlers.For(kindParam)
 	if hndl == nil {
 		http.Error(w, "unknown kind "+kindParam, http.StatusNotFound)
 		return
 	}
 
-	// args := n.QueryArgs(make([]any, 0, 1)) // TODO: filter by category/first param
-
 	input := kind
-
-	namespace := req.Context().Value(NamespaceKey).(string)
-
 	renderer, err := t.renderList(req.Context(), hndl, namespace, input)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
